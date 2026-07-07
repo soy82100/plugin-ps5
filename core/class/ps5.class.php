@@ -18,7 +18,15 @@ class ps5 extends eqLogic {
 	/*     * *************************** Cron ****************************** */
 
 	// Appelé par Jeedom toutes les minutes (activer "cron" dans la config du plugin)
+	// L'intervalle réel est configurable dans la configuration du plugin (défaut : 1 min)
 	public static function cron() {
+		$interval = (int) config::byKey('refreshInterval', 'ps5', 1);
+		if ($interval < 1) {
+			$interval = 1;
+		}
+		if ((date('i') % $interval) != 0) {
+			return;
+		}
 		foreach (self::byType('ps5', true) as $eqLogic) {
 			try {
 				$eqLogic->refreshInfo();

@@ -13,6 +13,14 @@ if (!isConnect()) {
 	<fieldset>
 		<legend><i class="fas fa-cogs"></i> {{Configuration générale}}</legend>
 		<div class="form-group">
+			<label class="col-md-4 control-label">{{Intervalle de rafraîchissement (minutes)}}
+				<sup><i class="fas fa-question-circle tooltips" title="{{Fréquence d'interrogation de la console. 1 minute par défaut. La requête est locale et très légère (un paquet UDP), un intervalle court ne pose pas de problème.}}"></i></sup>
+			</label>
+			<div class="col-md-4">
+				<input class="configKey form-control" data-l1key="refreshInterval" placeholder="1"/>
+			</div>
+		</div>
+		<div class="form-group">
 			<label class="col-md-4 control-label">{{Chemin vers playactor}}
 				<sup><i class="fas fa-question-circle tooltips" title="{{Optionnel. Utilisé uniquement pour la mise en veille. Ex : /usr/local/bin/playactor}}"></i></sup>
 			</label>
