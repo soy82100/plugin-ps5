@@ -70,17 +70,28 @@ Sauvegarder : les commandes sont créées automatiquement. Le bouton **« Tester
 
 ## Récupérer le user-credential (pour le réveil)
 
-Le réveil à distance nécessite un identifiant de 64 caractères hexadécimaux lié à votre compte PSN. Il se récupère **une seule fois** avec l'outil playactor, depuis la machine Jeedom (ou n'importe quelle machine du réseau) :
+Le réveil à distance nécessite un identifiant lié à votre compte PSN (le *user-credential*). Il se récupère **une seule fois** avec l'outil playactor.
+
+⚠️ **Important : effectuer cette procédure depuis un ordinateur disposant d'un navigateur web** (votre Mac/PC, sur le même réseau que la console) — pas depuis une VM Jeedom sans interface graphique : playactor a besoin d'ouvrir une page de connexion PSN et se termine silencieusement s'il ne trouve pas de navigateur. Le credential obtenu est lié à votre compte, pas à la machine : il fonctionnera dans Jeedom quelle que soit la machine utilisée pour le récupérer.
+
+**Préparation côté console** (allumée, sur le profil du compte PSN que vous allez utiliser) :
+- Paramètres > Système > Lecture à distance > **Activer la lecture à distance**
+
+**Sur l'ordinateur :**
 
 ```bash
-# Installer Node.js si nécessaire, puis :
+# Installer Node.js si nécessaire (nodejs.org), puis :
 sudo npm install -g playactor
 
-# Lancer la procédure de connexion (console allumée) :
+# Lancer la procédure de connexion :
 playactor login --ip <IP_DE_LA_PS5>
 ```
 
-Suivre les instructions : playactor affiche un lien d'authentification PSN à ouvrir dans un navigateur ; après connexion à votre compte, coller l'URL de redirection dans le terminal. Une étape d'appairage avec un code PIN affiché à l'écran de la console peut également être demandée (Paramètres > Système > Connexion à distance).
+Déroulé :
+
+1. playactor ouvre le navigateur (ou affiche un lien) vers la page de connexion PSN : connectez-vous avec le compte utilisé sur la console
+2. Après connexion, le navigateur affiche une page vide ou en erreur : **c'est normal**. Copiez l'**URL complète de la barre d'adresse** (elle contient `redirect?code=...`) et collez-la dans le terminal, à l'invite de playactor
+3. playactor demande ensuite un **PIN** : sur la console, Paramètres > Système > Lecture à distance > **Appairer le périphérique** → saisir le code à 8 chiffres affiché à l'écran, sans tarder
 
 Le credential se trouve ensuite dans le fichier :
 
@@ -88,7 +99,21 @@ Le credential se trouve ensuite dans le fichier :
 cat ~/.config/playactor/credentials.json
 ```
 
-Copier la valeur du champ `user-credential` dans le champ correspondant de l'équipement Jeedom.
+Copier la valeur du champ `user-credential` dans le champ correspondant de l'équipement Jeedom. ℹ️ Sur PS5, il s'agit généralement d'un **identifiant numérique court** (une dizaine de chiffres), et non d'une chaîne hexadécimale de 64 caractères comme sur PS4 — les deux formats sont acceptés par le plugin.
+
+⚠️ Ne partagez pas le contenu de `credentials.json` (forum, capture d'écran...) : il contient aussi vos clés d'appairage locales (RP-Key, RegistKey).
+
+**En cas d'erreur `Registration error: 403: Forbidden`** lors de l'appairage :
+
+1. Vérifier que le profil actif sur la console est bien celui du compte PSN utilisé pour le login
+2. Réinitialiser l'état de playactor et recommencer la procédure complète :
+
+```bash
+rm -rf ~/.config/playactor
+playactor login --ip <IP_DE_LA_PS5>
+```
+
+3. Si l'erreur persiste, redémarrer complètement la console (menu alimentation > Redémarrer, pas le mode repos) et réessayer
 
 ## Mise en veille (playactor)
 
@@ -116,7 +141,7 @@ echo -e "SRCH * HTTP/1.1\ndevice-discovery-protocol-version:00030010" | nc -u -w
 Une console joignable répond `HTTP/1.1 200 Ok` (allumée) ou `HTTP/1.1 620 Server Standby` (veille).
 
 **La commande « Réveiller » ne fonctionne pas**
-→ Vérifier que le user-credential est renseigné dans l'équipement et qu'il provient bien d'un compte connecté sur cette console. La console doit être en veille « connectée » (voir ci-dessus), pas complètement éteinte.
+→ Vérifier que le user-credential est renseigné dans l'équipement et qu'il provient bien d'un compte connecté sur cette console (voir la section dédiée, y compris la procédure en cas d'erreur 403 lors de sa récupération). La console doit être en veille « connectée » (voir ci-dessus), pas complètement éteinte.
 
 **La commande « Mettre en veille » échoue**
 → Vérifier le chemin de playactor dans la configuration du plugin, et que l'appairage playactor a été effectué. Consulter le log `ps5` (Analyse > Logs) en niveau Debug pour le détail de l'erreur.
