@@ -38,7 +38,7 @@ $eqLogics = eqLogic::byType($plugin->getId());
 				foreach ($eqLogics as $eqLogic) {
 					$opacity = ($eqLogic->getIsEnable()) ? '' : 'disableCard';
 					echo '<div class="eqLogicDisplayCard cursor ' . $opacity . '" data-eqLogic_id="' . $eqLogic->getId() . '">';
-					echo '<i class="fab fa-playstation" style="font-size:4em;"></i>';
+					echo '<img src="' . $plugin->getPathImgIcon() . '"/>';
 					echo '<br/>';
 					echo '<span class="name">' . $eqLogic->getHumanName(true, true) . '</span>';
 					echo '</div>';
