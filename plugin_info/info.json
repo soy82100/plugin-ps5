@@ -9,6 +9,6 @@
   "hasDependency": false,
   "hasOwnDeamon": false,
   "maxDependancyInstallTime": 0,
-  "documentation": "",
-  "changelog": ""
+  "documentation": "https://github.com/soy82100/plugin-ps5/blob/main/docs/fr_FR/index.md",
+  "changelog": "https://github.com/soy82100/plugin-ps5/commits/main"
 }
