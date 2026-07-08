@@ -2,6 +2,8 @@
 
 Supervision et contrôle d'une **PlayStation 5** depuis Jeedom, 100 % en local, sans passerelle ni cloud.
 
+> ✅ **Statut : stable.** Toutes les fonctionnalités (état, application en cours, réveil à distance) sont testées et validées sur console réelle. Les évolutions passent par la branche `beta` avant d'arriver en stable.
+
 ## Fonctionnalités
 
 - 🟢 **État de la console** : Allumée / Veille / Éteinte (commande binaire historisée + commande texte)
