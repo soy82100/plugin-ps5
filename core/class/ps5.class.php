@@ -127,21 +127,25 @@ class ps5 extends eqLogic {
 	/**
 	 * Widget d'équipement personnalisé.
 	 *
-	 * Le widget n'est appliqué que sur le dashboard et le mobile.
+	 * Le module Design de Jeedom ne gère pas les templates d'équipement
+	 * personnalisés : l'élément déposé sur le design perd son positionnement
+	 * au premier rafraîchissement, se retrouve rejeté en bas de page, et devient
+	 * impossible à sélectionner, déplacer ou paramétrer par clic droit.
 	 *
-	 * Le module Design de Jeedom (versions 'dview' / 'mview') ne gère pas les
-	 * templates d'équipement personnalisés : l'élément déposé sur le design perd
-	 * son positionnement absolu au premier rafraîchissement, se retrouve rejeté en
-	 * bas de page, et devient impossible à sélectionner, à déplacer ou à
-	 * paramétrer par clic droit.
-	 * On y renvoie donc volontairement le rendu standard de Jeedom, qui reste
-	 * pleinement manipulable.
+	 * On y renvoie donc le rendu standard de Jeedom, qui reste manipulable.
 	 *
-	 * Important : ce test doit porter sur $_version AVANT jeedom::versionAlias(),
-	 * car cette dernière convertit 'dview' en 'dashboard' — le contexte Design
-	 * deviendrait alors indétectable.
+	 * /!\ DIAGNOSTIC EN COURS : la ligne de log ci-dessous affiche la valeur
+	 * réelle de $_version selon le contexte d'affichage. Elle permet d'identifier
+	 * le nom exact utilisé par le module Design (les valeurs 'dview' / 'mview'
+	 * testées jusqu'ici ne correspondent visiblement pas).
+	 * À retirer une fois le correctif validé.
+	 *
+	 * Important : le test porte sur $_version AVANT jeedom::versionAlias(),
+	 * car cette dernière normalise les versions et masquerait le contexte Design.
 	 */
 	public function toHtml($_version = 'dashboard') {
+		log::add('ps5', 'debug', '>>> toHtml version = [' . $_version . ']');
+
 		if (in_array($_version, array('dview', 'mview'))) {
 			return parent::toHtml($_version);
 		}
