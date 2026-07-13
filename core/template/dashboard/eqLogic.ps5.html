@@ -46,14 +46,19 @@
 	<span class="cmdValue" data-cmd_id="#etat_id#" data-ps5="etat" style="display:none;">#etat_value#</span>
 
 	<style>
-		/* IMPORTANT - ne pas fixer width/height sur .ps5-widget :
-		   le module Design (desktop/js/plan.js) applique lui-meme
-		   position:absolute + top/left/width/height EN STYLE INLINE sur l'element
-		   portant la classe .eqLogic-widget. C'est cette classe, presente sur le
-		   div racine ci-dessus, qui rend l'element positionnable, deplacable,
-		   redimensionnable (allowResize) et accessible au clic droit.
-		   Toute regle width/height ici entrerait en conflit avec ce mecanisme. */
+		/* Le module Design (desktop/js/plan.js) applique position:absolute et
+		   top/left/width/height EN STYLE INLINE sur l'element portant la classe
+		   .eqLogic-widget. C'est cette classe (sur le div racine ci-dessus) qui rend
+		   l'element positionnable, deplacable, redimensionnable (allowResize) et
+		   accessible au clic droit. On ne fixe donc PAS width/height ici.
+
+		   En revanche, plan.js donne 50px par defaut a un nouvel element
+		   (init(_plan.display.width, 50)) : sans taille minimale, le widget serait
+		   ecrase et son contenu rogne. D'ou les min-width / min-height ci-dessous,
+		   qui n'empechent pas d'agrandir librement depuis le Design. */
 		.ps5-widget{
+			min-width:150px;
+			min-height:190px;
 			box-sizing:border-box;
 			overflow:hidden;
 			background:transparent !important;
@@ -62,8 +67,7 @@
 			padding:0 !important;
 		}
 
-		/* Disposition verticale : console en haut, etat et commandes dessous.
-		   La carte remplit integralement la boite fournie par le Design. */
+		/* Disposition verticale : console en haut, etat et commandes dessous. */
 		.ps5-widget .ps5-card{
 			display:flex;
 			flex-direction:column;
@@ -71,16 +75,16 @@
 			justify-content:center;
 			width:100%;
 			height:100%;
-			min-height:140px;
-			gap:0.4em;
-			padding:5%;
+			gap:0.35em;
+			padding:4%;
 			box-sizing:border-box;
 			background:transparent !important;
 		}
 
+		/* La console absorbe l'espace restant et se compresse en premier. */
 		.ps5-widget .ps5-console{
 			flex:1 1 auto;
-			min-height:0;
+			min-height:40px;
 			width:100%;
 			display:flex;
 			align-items:center;
@@ -89,13 +93,15 @@
 		.ps5-widget .ps5-svg{
 			height:100%;
 			max-height:100%;
-			min-height:44px;
+			min-height:40px;
 			width:auto;
 			max-width:100%;
 			display:block;
 			overflow:visible;
 		}
 
+		/* flex:0 0 auto -> le bloc etat + commandes n'est JAMAIS compresse :
+		   les boutons restent visibles quelle que soit la taille. */
 		.ps5-widget .ps5-info{
 			flex:0 0 auto;
 			width:100%;
@@ -108,7 +114,7 @@
 			align-items:center;
 			justify-content:center;
 			gap:0.4em;
-			margin-bottom:2px;
+			margin-bottom:1px;
 		}
 		.ps5-widget .ps5-dot{
 			width:0.6em;height:0.6em;border-radius:50%;
@@ -129,7 +135,7 @@
 		.ps5-widget .ps5-timer{
 			font-size:0.68em;
 			color:rgba(234,234,234,0.55) !important;
-			margin-bottom:0.4em;
+			margin-bottom:0.35em;
 			white-space:nowrap;overflow:hidden;
 		}
 
@@ -141,9 +147,9 @@
 		}
 		.ps5-widget .ps5-btn{
 			flex:1 1 0;
-			max-width:3.2em;
+			max-width:3.4em;
 			text-align:center;
-			padding:0.4em 0;
+			padding:0.45em 0;
 			background:rgba(255,255,255,0.10);
 			border:1px solid rgba(255,255,255,0.20);
 			border-radius:6px;
@@ -152,7 +158,7 @@
 		}
 		.ps5-widget .ps5-btn:hover{background:rgba(255,255,255,0.22);}
 		.ps5-widget .ps5-btn:active{transform:scale(0.95);}
-		.ps5-widget .ps5-btn i{font-size:0.85em;color:#eaeaea;}
+		.ps5-widget .ps5-btn i{font-size:0.9em;color:#eaeaea;}
 		.ps5-widget .ps5-btn-refresh i{color:#4da6ff;}
 	</style>
 
@@ -164,17 +170,17 @@
 		$w.data('ps5-init',true);
 
 		/* Le texte est dimensionne en "em" : on pilote la taille de base selon la
-		   boite pour que tout grandisse ou retrecisse ensemble quand l'element est
+		   boite, pour que tout grandisse ou retrecisse ensemble quand l'element est
 		   redimensionne depuis le Design. */
 		function rescale(){
 			var h=$w.height(), wpx=$w.width();
 			if(!h||!wpx)return;
-			var base=Math.max(9,Math.min(18,Math.min(h/10,wpx/12)));
+			var base=Math.max(10,Math.min(20,Math.min(h/11,wpx/11)));
 			$w.css('font-size',base+'px');
 		}
 		rescale();
 		$(window).on('resize',rescale);
-		setInterval(rescale,2000);
+		setInterval(rescale,1500);
 
 		var $led=$w.find('.ps5-led,.ps5-glow'), $dot=$w.find('.ps5-dot');
 		var pulse=null, since=null, last=null;
