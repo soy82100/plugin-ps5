@@ -124,6 +124,31 @@ class ps5 extends eqLogic {
 		}
 	}
 
+	// Widget d'équipement personnalisé pour le dashboard
+	public function toHtml($_version = 'dashboard') {
+		$replace = $this->preToHtml($_version);
+		if (!is_array($replace)) {
+			return $replace;
+		}
+		$version = jeedom::versionAlias($_version);
+
+		$logicalIds = array('online', 'etat', 'application', 'wake', 'standby', 'refresh');
+		foreach ($logicalIds as $lid) {
+			$cmd = $this->getCmd(null, $lid);
+			$replace['#' . $lid . '_id#'] = is_object($cmd) ? $cmd->getId() : '';
+			$replace['#' . $lid . '_name#'] = is_object($cmd) ? $cmd->getName() : '';
+			if (is_object($cmd) && $cmd->getType() == 'info') {
+				$val = $cmd->execCmd();
+				$replace['#' . $lid . '_value#'] = ($val === null || $val === '') ? '' : $val;
+			} else {
+				$replace['#' . $lid . '_value#'] = '';
+			}
+		}
+
+		return $this->postToHtml($_version, template_replace($replace,
+			getTemplate('core', $version, 'eqLogic.ps5', 'ps5')));
+	}
+
 	// Interroge la console et met à jour les commandes info
 	public function refreshInfo() {
 		$ip = trim($this->getConfiguration('ip'));
@@ -263,3 +288,4 @@ class ps5Cmd extends cmd {
 		return;
 	}
 }
+
