@@ -5,10 +5,10 @@
         "python3-venv": {}
     },
     "pip3": {
-        "pyremoteplay": {},
         "pyee": {
-            "version": "==9.1.1"
+            "version": "9.1.1"
         },
-        "async_timeout": {}
+        "async_timeout": {},
+        "pyremoteplay": {}
     }
 }
