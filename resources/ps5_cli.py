@@ -13,20 +13,23 @@ Sortie : UNIQUEMENT du JSON sur stdout. Code retour 0 = OK, 1 = erreur.
 Prerequis : profil d'appairage dans $HOME/.pyremoteplay/.profile.json
             (voir la documentation du plugin)
 
-Deux pieges de pyremoteplay 0.7.6, geres ici :
+Trois pieges de pyremoteplay 0.7.6, tous geres ici :
 
 1. RPDevice.standby() est une COROUTINE. L'appeler sans await renvoie un objet
    coroutine (toujours evalue a True) sans rien executer : la commande n'est
    jamais envoyee alors que tout semble reussir. D'ou asyncio.
 
-2. La valeur de retour de standby() n'est PAS fiable. La negociation de session
-   emet des "Version not accepted" et un "Network Test timed out", puis la lib
-   renvoie False -- alors que la console recoit bien l'ordre et se met en veille.
-   On ne se fie donc pas au booleen : on interroge l'etat reel de la console
-   apres coup. C'est la seule verite.
+2. La valeur de retour de standby() n'est PAS fiable. La negociation emet des
+   "Version not accepted" et un "Network Test timed out", puis la lib renvoie
+   False -- alors que la console recoit bien l'ordre et se met en veille.
+   On ignore donc le booleen et on interroge l'etat reel de la console.
 
-La lib ecrit aussi du bruit sur stdout/stderr, qui casserait le json_decode()
-cote PHP : toute la sortie parasite est capturee et jetee.
+3. Pendant la bascule en veille, la console cesse de repondre au DDP : elle est
+   temporairement INJOIGNABLE. Ce silence ne doit pas etre pris pour un echec,
+   c'est au contraire le signe que la mise en veille est en cours.
+
+La lib ecrit du bruit sur stdout/stderr, qui casserait le json_decode() cote
+PHP : toute sortie parasite est capturee et jetee.
 """
 
 import argparse
@@ -49,9 +52,9 @@ except ImportError as exc:
     sys.exit(1)
 
 
-TIMEOUT = 45        # etablissement de la session Remote Play (lent)
-CHECK_DELAY = 6     # attente avant de verifier l'etat reel de la console
-CHECK_TRIES = 5     # nombre de verifications
+TIMEOUT = 40        # etablissement de la session Remote Play (lent)
+CHECK_DELAY = 5     # attente avant la premiere verification
+CHECK_TRIES = 7     # nombre de verifications
 CHECK_INTERVAL = 3  # secondes entre deux verifications
 
 STATUS_ON = 200
@@ -66,9 +69,8 @@ def emit(payload, code=0):
 
 
 def fetch_status(ip):
-    """Interroge la console. Retourne (device, status) ; status peut etre None."""
-    device = RPDevice(ip)
-    return device, device.get_status()
+    """Interroge la console. Retourne le dict de statut, ou None si injoignable."""
+    return RPDevice(ip).get_status()
 
 
 def describe(status):
@@ -83,7 +85,7 @@ def describe(status):
 
 
 def cmd_status(ip):
-    _, status = fetch_status(ip)
+    status = fetch_status(ip)
     online, etat, app = describe(status)
     emit({
         "success": True,
@@ -124,12 +126,10 @@ async def _standby(ip):
 
     user = users[0]
 
-    # La valeur de retour est ignoree volontairement : elle est non fiable.
+    # Valeur de retour volontairement ignoree : elle est non fiable (cf. entete).
     try:
         await asyncio.wait_for(device.standby(user, profiles), timeout=TIMEOUT)
-    except asyncio.TimeoutError:
-        pass
-    except Exception:  # noqa: BLE001
+    except (asyncio.TimeoutError, Exception):  # noqa: BLE001
         pass
     finally:
         try:
@@ -139,18 +139,32 @@ async def _standby(ip):
         except Exception:  # noqa: BLE001
             pass
 
-    # Seule verite : l'etat reel de la console.
+    # Verification sur l'etat reel de la console.
+    #  - 620 (Veille)      -> succes confirme
+    #  - None (injoignable) -> bascule en cours : on patiente, ce n'est PAS un echec
+    #  - 200 (Allumee)      -> toujours allumee : on continue d'attendre
     await asyncio.sleep(CHECK_DELAY)
+    unreachable = False
+
     for _ in range(CHECK_TRIES):
-        _, check = fetch_status(ip)
-        if check is not None and check.get("status-code") == STATUS_STANDBY:
+        check = fetch_status(ip)
+        if check is None:
+            unreachable = True
+        elif check.get("status-code") == STATUS_STANDBY:
             return {"success": True, "action": "standby", "user": user}
         await asyncio.sleep(CHECK_INTERVAL)
 
-    return {
-        "success": False,
-        "error": "la console n'est pas passee en veille dans le delai imparti",
-    }
+    # La console ne repond plus au DDP : elle est presque certainement en train
+    # de basculer (ou deja eteinte). On considere la commande comme passee.
+    if unreachable:
+        return {
+            "success": True,
+            "action": "standby",
+            "user": user,
+            "note": "console injoignable (bascule en cours)",
+        }
+
+    return {"success": False, "error": "la console est restee allumee"}
 
 
 def cmd_standby(ip):
