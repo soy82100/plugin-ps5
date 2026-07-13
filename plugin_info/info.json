@@ -6,7 +6,7 @@
   "author": "Alex - Soyer Home",
   "require": "4.2",
   "category": "multimedia",
-  "hasDependency": true,
+  "hasDependency": false,
   "hasOwnDeamon": false,
   "maxDependancyInstallTime": 15,
   "documentation": "https://github.com/soy82100/plugin-ps5/blob/main/docs/fr_FR/index.md",
