@@ -5,7 +5,7 @@
  * (Device Discovery Protocol) sur le port UDP 9302 :
  *  - SRCH   : interroge l'état de la console (200 Ok = allumée, 620 = veille)
  *  - WAKEUP : réveille la console (nécessite un user-credential)
- * La mise en veille passe par l'outil externe playactor (optionnel).
+ * La mise en veille passe par un CLI Python interne (pyremoteplay).
  */
 
 require_once dirname(__FILE__) . '/../../../../core/php/core.inc.php';
@@ -124,8 +124,28 @@ class ps5 extends eqLogic {
 		}
 	}
 
-	// Widget d'équipement personnalisé pour le dashboard
+	/**
+	 * Widget d'équipement personnalisé.
+	 *
+	 * Le widget n'est appliqué que sur le dashboard et le mobile.
+	 *
+	 * Le module Design de Jeedom (versions 'dview' / 'mview') ne gère pas les
+	 * templates d'équipement personnalisés : l'élément déposé sur le design perd
+	 * son positionnement absolu au premier rafraîchissement, se retrouve rejeté en
+	 * bas de page, et devient impossible à sélectionner, à déplacer ou à
+	 * paramétrer par clic droit.
+	 * On y renvoie donc volontairement le rendu standard de Jeedom, qui reste
+	 * pleinement manipulable.
+	 *
+	 * Important : ce test doit porter sur $_version AVANT jeedom::versionAlias(),
+	 * car cette dernière convertit 'dview' en 'dashboard' — le contexte Design
+	 * deviendrait alors indétectable.
+	 */
 	public function toHtml($_version = 'dashboard') {
+		if (in_array($_version, array('dview', 'mview'))) {
+			return parent::toHtml($_version);
+		}
+
 		$replace = $this->preToHtml($_version);
 		if (!is_array($replace)) {
 			return $replace;
@@ -246,22 +266,44 @@ class ps5 extends eqLogic {
 		log::add('ps5', 'info', $this->getHumanName() . ' : paquet WAKEUP envoyé à ' . $ip);
 	}
 
-	// Mise en veille via playactor (session TCP chiffrée, trop complexe en PHP pur)
+	/**
+	 * Mise en veille via le CLI Python interne (pyremoteplay).
+	 *
+	 * Historique : playactor (Node.js) était utilisé jusqu'ici, mais le projet
+	 * n'est plus maintenu depuis 2022 et son enregistrement échoue avec une
+	 * erreur 403 sur les firmwares PS5 récents. pyremoteplay implémente le même
+	 * protocole Remote Play, avec un appairage fonctionnel.
+	 *
+	 * L'appairage est à faire une seule fois, en SSH (voir la documentation).
+	 */
 	public function standby() {
 		$ip = trim($this->getConfiguration('ip'));
-		$playactor = trim(config::byKey('playactorPath', 'ps5', '/usr/local/bin/playactor'));
 		if ($ip == '') {
 			throw new Exception(__('Aucune adresse IP configurée', __FILE__));
 		}
-		if ($playactor == '' || !file_exists($playactor)) {
-			throw new Exception(__('playactor introuvable : configurez son chemin dans la configuration du plugin (npm install -g playactor)', __FILE__));
+
+		$cli = realpath(dirname(__FILE__) . '/../../resources/ps5_cli.py');
+		if ($cli === false) {
+			throw new Exception(__('ps5_cli.py introuvable dans le dossier resources du plugin', __FILE__));
 		}
-		$cmd = escapeshellarg($playactor) . ' standby --ip ' . escapeshellarg($ip) . ' --timeout 15000 2>&1';
+
+		// HOME est indispensable : pyremoteplay y cherche le profil d'appairage
+		// (/var/www/.pyremoteplay/.profile.json). Jeedom n'exporte pas toujours HOME.
+		$cmd = 'HOME=/var/www /usr/bin/python3 ' . escapeshellarg($cli)
+			. ' standby --ip ' . escapeshellarg($ip) . ' 2>&1';
+
 		log::add('ps5', 'info', $this->getHumanName() . ' : ' . $cmd);
 		exec($cmd, $output, $code);
-		log::add('ps5', 'debug', 'playactor (' . $code . ') : ' . implode(' | ', $output));
-		if ($code !== 0) {
-			throw new Exception(__('Échec de la mise en veille : ', __FILE__) . implode(' ', $output));
+		$raw = trim(implode('', $output));
+		log::add('ps5', 'debug', 'ps5_cli (' . $code . ') : ' . $raw);
+
+		$json = json_decode($raw, true);
+		if (!is_array($json)) {
+			throw new Exception(__('Réponse illisible du CLI : ', __FILE__) . $raw);
+		}
+		if (empty($json['success'])) {
+			throw new Exception(__('Échec de la mise en veille : ', __FILE__)
+				. (isset($json['error']) ? $json['error'] : __('erreur inconnue', __FILE__)));
 		}
 	}
 }
@@ -288,4 +330,3 @@ class ps5Cmd extends cmd {
 		return;
 	}
 }
-
