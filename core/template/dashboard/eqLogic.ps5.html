@@ -48,17 +48,16 @@
 	<style>
 		/* Le module Design (desktop/js/plan.js) applique position:absolute et
 		   top/left/width/height EN STYLE INLINE sur l'element portant la classe
-		   .eqLogic-widget. C'est cette classe (sur le div racine ci-dessus) qui rend
+		   .eqLogic-widget. C'est cette classe (div racine ci-dessus) qui rend
 		   l'element positionnable, deplacable, redimensionnable (allowResize) et
 		   accessible au clic droit. On ne fixe donc PAS width/height ici.
 
-		   En revanche, plan.js donne 50px par defaut a un nouvel element
-		   (init(_plan.display.width, 50)) : sans taille minimale, le widget serait
-		   ecrase et son contenu rogne. D'ou les min-width / min-height ci-dessous,
-		   qui n'empechent pas d'agrandir librement depuis le Design. */
+		   plan.js donne 50px par defaut a un nouvel element : sans taille minimale,
+		   le widget serait ecrase et son contenu rogne. Les min-* ci-dessous
+		   garantissent un rendu correct des l'ajout, sans empecher d'agrandir. */
 		.ps5-widget{
-			min-width:150px;
-			min-height:190px;
+			min-width:160px;
+			min-height:260px;
 			box-sizing:border-box;
 			overflow:hidden;
 			background:transparent !important;
@@ -75,33 +74,31 @@
 			justify-content:center;
 			width:100%;
 			height:100%;
-			gap:0.35em;
+			gap:0.3em;
 			padding:4%;
 			box-sizing:border-box;
 			background:transparent !important;
 		}
 
-		/* La console absorbe l'espace restant et se compresse en premier. */
+		/* La console prend toute la place disponible : c'est l'element principal. */
 		.ps5-widget .ps5-console{
 			flex:1 1 auto;
-			min-height:40px;
+			min-height:120px;
 			width:100%;
 			display:flex;
 			align-items:center;
 			justify-content:center;
 		}
+		/* width:100% + preserveAspectRatio=meet : le SVG remplit la boite au
+		   maximum tout en gardant ses proportions. */
 		.ps5-widget .ps5-svg{
+			width:100%;
 			height:100%;
-			max-height:100%;
-			min-height:40px;
-			width:auto;
-			max-width:100%;
 			display:block;
 			overflow:visible;
 		}
 
-		/* flex:0 0 auto -> le bloc etat + commandes n'est JAMAIS compresse :
-		   les boutons restent visibles quelle que soit la taille. */
+		/* flex:0 0 auto -> le bloc etat + commandes n'est jamais compresse. */
 		.ps5-widget .ps5-info{
 			flex:0 0 auto;
 			width:100%;
@@ -114,7 +111,6 @@
 			align-items:center;
 			justify-content:center;
 			gap:0.4em;
-			margin-bottom:1px;
 		}
 		.ps5-widget .ps5-dot{
 			width:0.6em;height:0.6em;border-radius:50%;
@@ -135,21 +131,24 @@
 		.ps5-widget .ps5-timer{
 			font-size:0.68em;
 			color:rgba(234,234,234,0.55) !important;
-			margin-bottom:0.35em;
 			white-space:nowrap;overflow:hidden;
 		}
+		/* Console eteinte ou en veille : ces lignes sont vides. On les masque pour
+		   ne pas gaspiller de la hauteur au detriment du dessin. */
+		.ps5-widget .ps5-app:empty,
+		.ps5-widget .ps5-timer:empty{display:none;}
 
 		.ps5-widget .ps5-actions{
 			display:flex;
 			justify-content:center;
 			gap:0.4em;
 			width:100%;
+			margin-top:0.45em;
 		}
 		.ps5-widget .ps5-btn{
-			flex:1 1 0;
-			max-width:3.4em;
+			flex:0 1 3em;
 			text-align:center;
-			padding:0.45em 0;
+			padding:0.35em 0;
 			background:rgba(255,255,255,0.10);
 			border:1px solid rgba(255,255,255,0.20);
 			border-radius:6px;
@@ -158,7 +157,7 @@
 		}
 		.ps5-widget .ps5-btn:hover{background:rgba(255,255,255,0.22);}
 		.ps5-widget .ps5-btn:active{transform:scale(0.95);}
-		.ps5-widget .ps5-btn i{font-size:0.9em;color:#eaeaea;}
+		.ps5-widget .ps5-btn i{font-size:0.85em;color:#eaeaea;}
 		.ps5-widget .ps5-btn-refresh i{color:#4da6ff;}
 	</style>
 
@@ -170,12 +169,12 @@
 		$w.data('ps5-init',true);
 
 		/* Le texte est dimensionne en "em" : on pilote la taille de base selon la
-		   boite, pour que tout grandisse ou retrecisse ensemble quand l'element est
-		   redimensionne depuis le Design. */
+		   boite, pour que tout grandisse ou retrecisse ensemble lorsque l'element
+		   est redimensionne depuis le Design. */
 		function rescale(){
 			var h=$w.height(), wpx=$w.width();
 			if(!h||!wpx)return;
-			var base=Math.max(10,Math.min(20,Math.min(h/11,wpx/11)));
+			var base=Math.max(10,Math.min(20,Math.min(h/16,wpx/11)));
 			$w.css('font-size',base+'px');
 		}
 		rescale();
