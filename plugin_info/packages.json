@@ -8,6 +8,7 @@
         "pyremoteplay": {},
         "pyee": {
             "version": "==9.1.1"
-        }
+        },
+        "async_timeout": {}
     }
 }
