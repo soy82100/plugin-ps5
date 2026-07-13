@@ -5,7 +5,8 @@
  * (Device Discovery Protocol) sur le port UDP 9302 :
  *  - SRCH   : interroge l'état de la console (200 Ok = allumée, 620 = veille)
  *  - WAKEUP : réveille la console (nécessite un user-credential)
- * La mise en veille passe par un CLI Python interne (pyremoteplay).
+ * La mise en veille passe par un CLI Python interne (pyremoteplay), exécuté
+ * dans l'environnement virtuel créé par le gestionnaire de dépendances Jeedom.
  */
 
 require_once dirname(__FILE__) . '/../../../../core/php/core.inc.php';
@@ -127,21 +128,19 @@ class ps5 extends eqLogic {
 	/**
 	 * Widget d'équipement personnalisé.
 	 *
-	 * Le widget n'est appliqué que sur le dashboard et le mobile.
+	 * Le module Design de Jeedom ne gère pas les templates d'équipement
+	 * personnalisés : l'élément déposé sur le design perd son positionnement
+	 * au premier rafraîchissement, se retrouve rejeté en bas de page, et devient
+	 * impossible à sélectionner, déplacer ou paramétrer par clic droit.
 	 *
-	 * Le module Design de Jeedom (versions 'dview' / 'mview') ne gère pas les
-	 * templates d'équipement personnalisés : l'élément déposé sur le design perd
-	 * son positionnement absolu au premier rafraîchissement, se retrouve rejeté en
-	 * bas de page, et devient impossible à sélectionner, à déplacer ou à
-	 * paramétrer par clic droit.
-	 * On y renvoie donc volontairement le rendu standard de Jeedom, qui reste
-	 * pleinement manipulable.
-	 *
-	 * Important : ce test doit porter sur $_version AVANT jeedom::versionAlias(),
-	 * car cette dernière convertit 'dview' en 'dashboard' — le contexte Design
-	 * deviendrait alors indétectable.
+	 * /!\ DIAGNOSTIC EN COURS : la ligne de log ci-dessous affiche la valeur
+	 * réelle de $_version selon le contexte. Elle permet d'identifier le nom
+	 * exact utilisé par le module Design ('dview' / 'mview' ne conviennent pas).
+	 * À retirer une fois le correctif validé.
 	 */
 	public function toHtml($_version = 'dashboard') {
+		log::add('ps5', 'debug', '>>> toHtml version = [' . $_version . ']');
+
 		if (in_array($_version, array('dview', 'mview'))) {
 			return parent::toHtml($_version);
 		}
@@ -267,6 +266,24 @@ class ps5 extends eqLogic {
 	}
 
 	/**
+	 * Chemin de l'interpréteur Python à utiliser.
+	 *
+	 * Le gestionnaire de dépendances de Jeedom installe pyremoteplay dans un
+	 * environnement virtuel dédié au plugin (resources/python_venv). Le Python
+	 * système ne connaît donc pas la bibliothèque : il faut impérativement
+	 * appeler celui du venv, sans quoi le plugin fonctionnerait uniquement sur
+	 * les installations où la lib a été posée à la main.
+	 */
+	private static function getPython() {
+		$venv = dirname(__FILE__) . '/../../resources/python_venv/bin/python3';
+		if (file_exists($venv)) {
+			return $venv;
+		}
+		// Repli : installation manuelle de pyremoteplay sur le Python système
+		return '/usr/bin/python3';
+	}
+
+	/**
 	 * Mise en veille via le CLI Python interne (pyremoteplay).
 	 *
 	 * Historique : playactor (Node.js) était utilisé jusqu'ici, mais le projet
@@ -287,9 +304,11 @@ class ps5 extends eqLogic {
 			throw new Exception(__('ps5_cli.py introuvable dans le dossier resources du plugin', __FILE__));
 		}
 
+		$python = self::getPython();
+
 		// HOME est indispensable : pyremoteplay y cherche le profil d'appairage
 		// (/var/www/.pyremoteplay/.profile.json). Jeedom n'exporte pas toujours HOME.
-		$cmd = 'HOME=/var/www /usr/bin/python3 ' . escapeshellarg($cli)
+		$cmd = 'HOME=/var/www ' . escapeshellarg($python) . ' ' . escapeshellarg($cli)
 			. ' standby --ip ' . escapeshellarg($ip) . ' 2>&1';
 
 		log::add('ps5', 'info', $this->getHumanName() . ' : ' . $cmd);
