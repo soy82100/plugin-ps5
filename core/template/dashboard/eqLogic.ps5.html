@@ -1,136 +1,59 @@
 <div class="eqLogic ps5-widget" data-eqLogic_id="#id#" data-version="#version#" style="#style#">
 	<div class="ps5-card">
 		<div class="ps5-scene">
-			<svg viewBox="0 0 200 130" preserveAspectRatio="xMidYMid meet" class="ps5-svg">
-				<ellipse class="ps5-glow" cx="100" cy="122" rx="42" ry="5" fill="#4da6ff" opacity="0.14"/>
-				<g transform="translate(100,62)">
-					<path d="M-26 -46 Q-30 -44 -29 -38 L-24 40 Q-23 46 -17 46 L-13 46 L-13 -44 Q-13 -48 -18 -48 Z" fill="#f4f4f5"/>
-					<path d="M26 -46 Q30 -44 29 -38 L24 40 Q23 46 17 46 L13 46 L13 -44 Q13 -48 18 -48 Z" fill="#f4f4f5"/>
-					<rect x="-13" y="-44" width="26" height="90" rx="3" fill="#13161d"/>
-					<rect x="-9" y="-28" width="18" height="1.5" rx="0.7" fill="#282e3a"/>
-					<rect x="-9" y="-24" width="18" height="1.5" rx="0.7" fill="#282e3a"/>
-					<rect x="-9" y="22" width="18" height="1.5" rx="0.7" fill="#282e3a"/>
-					<rect x="-9" y="26" width="18" height="1.5" rx="0.7" fill="#282e3a"/>
-					<rect class="ps5-led" x="-2" y="-6" width="4" height="15" rx="2" fill="#4da6ff"/>
+			<svg width="100%" height="110" viewBox="0 0 180 110" preserveAspectRatio="xMidYMid meet">
+				<g transform="translate(90,55)">
+					<path d="M-24 -42 Q-28 -40 -27 -34 L-22 36 Q-21 42 -16 42 L-12 42 L-12 -40 Q-12 -44 -17 -44 Z" fill="#f4f4f5"/>
+					<path d="M24 -42 Q28 -40 27 -34 L22 36 Q21 42 16 42 L12 42 L12 -40 Q12 -44 17 -44 Z" fill="#f4f4f5"/>
+					<rect x="-12" y="-40" width="24" height="82" rx="3" fill="#13161d"/>
+					<rect x="-8" y="-26" width="16" height="1.5" rx="0.7" fill="#282e3a"/>
+					<rect x="-8" y="-22" width="16" height="1.5" rx="0.7" fill="#282e3a"/>
+					<rect x="-8" y="20" width="16" height="1.5" rx="0.7" fill="#282e3a"/>
+					<rect x="-8" y="24" width="16" height="1.5" rx="0.7" fill="#282e3a"/>
+					<rect class="ps5-led" x="-2" y="-6" width="4" height="14" rx="2" fill="#4da6ff"/>
 				</g>
 			</svg>
 		</div>
 
 		<div class="ps5-info">
 			<div class="ps5-row">
-				<div class="ps5-status">
-					<span class="ps5-dot"></span>
-					<span class="ps5-etat" id="ps5et#id#">#etat_value#</span>
-				</div>
-				<span class="ps5-timer" id="ps5tm#id#"></span>
+				<span class="ps5-dot"></span>
+				<span class="ps5-etat">#etat_value#</span>
 			</div>
-
-			<div class="ps5-row ps5-app-row">
-				<span class="ps5-label">En cours</span>
-				<span class="ps5-app" id="ps5ap#id#">#application_value#</span>
-			</div>
+			<div class="ps5-app">#application_value#</div>
 
 			<div class="ps5-actions">
-				<div class="cmd cmdAction ps5-btn" data-type="action" data-cmd_id="#wake_id#" title="Reveiller"><i class="fas fa-power-off"></i><span>Réveiller</span></div>
-				<div class="cmd cmdAction ps5-btn" data-type="action" data-cmd_id="#standby_id#" title="Mettre en veille"><i class="fas fa-moon"></i><span>Veille</span></div>
-				<div class="cmd cmdAction ps5-btn ps5-btn-refresh" data-type="action" data-cmd_id="#refresh_id#" title="Rafraichir"><i class="fas fa-sync"></i><span>Actualiser</span></div>
+				<div class="cmd cmdAction ps5-btn" data-type="action" data-cmd_id="#wake_id#" title="Reveiller"><i class="fas fa-power-off"></i></div>
+				<div class="cmd cmdAction ps5-btn" data-type="action" data-cmd_id="#standby_id#" title="Mettre en veille"><i class="fas fa-moon"></i></div>
+				<div class="cmd cmdAction ps5-btn" data-type="action" data-cmd_id="#refresh_id#" title="Rafraichir"><i class="fas fa-sync"></i></div>
 			</div>
 		</div>
 	</div>
 
-	<span class="cmdValue" data-cmd_id="#online_id#" data-ps5="online" style="display:none;">#online_value#</span>
-	<span class="cmdValue" data-cmd_id="#etat_id#" data-ps5="etat" style="display:none;">#etat_value#</span>
-
 	<style>
-		.ps5-widget .ps5-card{background:#12141a;border:1px solid #242938;border-radius:14px;overflow:hidden;max-width:420px;margin:0 auto;color:#e8ebf2;font-size:13px;}
-		.ps5-widget .ps5-scene{background:radial-gradient(ellipse at 50% 42%,#1a2340 0%,#12141a 72%);padding:14px 0;transition:background .4s;}
-		.ps5-widget .ps5-svg{display:block;width:100%;height:130px;}
-		.ps5-widget .ps5-info{padding:14px 16px;}
-		.ps5-widget .ps5-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;}
-		.ps5-widget .ps5-status{display:flex;align-items:center;gap:8px;}
-		.ps5-widget .ps5-dot{width:9px;height:9px;border-radius:50%;background:#4da6ff;box-shadow:0 0 9px #4da6ff;display:inline-block;flex-shrink:0;transition:all .3s;}
-		.ps5-widget .ps5-etat{font-size:15px;font-weight:600;}
-		.ps5-widget .ps5-timer{font-size:12px;color:#8b93a7;}
-		.ps5-widget .ps5-label{color:#8b93a7;}
-		.ps5-widget .ps5-app{color:#e8ebf2;font-weight:500;text-align:right;}
-		.ps5-widget .ps5-app-row{padding-bottom:11px;border-bottom:1px solid #232838;}
-		.ps5-widget .ps5-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:12px;}
-		.ps5-widget .ps5-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px;background:#1a1f2c;border:1px solid #2b3245;border-radius:9px;font-size:11px;color:#c9d1e0;cursor:pointer;transition:background .15s;}
+		.ps5-widget .ps5-card{background:#12141a;border:1px solid #242938;border-radius:12px;overflow:hidden;color:#e8ebf2;font-size:12px;width:100%;}
+		.ps5-widget .ps5-scene{background:#161a24;padding:8px 0;text-align:center;}
+		.ps5-widget .ps5-info{padding:10px 12px;}
+		.ps5-widget .ps5-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+		.ps5-widget .ps5-dot{width:8px;height:8px;border-radius:50%;background:#4da6ff;display:inline-block;flex-shrink:0;}
+		.ps5-widget .ps5-etat{font-size:13px;font-weight:600;}
+		.ps5-widget .ps5-app{font-size:11px;color:#8b93a7;margin-bottom:9px;min-height:14px;}
+		.ps5-widget .ps5-actions{display:flex;gap:6px;}
+		.ps5-widget .ps5-btn{flex:1;text-align:center;padding:7px 2px;background:#1a1f2c;border:1px solid #2b3245;border-radius:7px;color:#c9d1e0;cursor:pointer;}
 		.ps5-widget .ps5-btn:hover{background:#232a3a;}
-		.ps5-widget .ps5-btn:active{transform:scale(0.96);}
-		.ps5-widget .ps5-btn i{font-size:14px;}
-		.ps5-widget .ps5-btn-refresh i{color:#4da6ff;}
+		.ps5-widget .ps5-btn i{font-size:13px;}
 	</style>
 
 	<script>
 	(function(){
-		var wid='#id#';
-		var $w=$('.ps5-widget[data-eqLogic_id='+wid+']').last();
-		if($w.length===0||$w.data('ps5-init'))return;
-		$w.data('ps5-init',true);
-
-		var $led=$w.find('.ps5-led'), $dot=$w.find('.ps5-dot'), $glow=$w.find('.ps5-glow');
-		var $scene=$w.find('.ps5-scene');
-		var pulse=null, since=null, lastState=null;
-
-		function read(k){
-			var $e=$w.find('.cmdValue[data-ps5='+k+']');
-			if($e.length===0)return null;
-			var v=$e.text();
-			return (v===undefined||v===null||v==='')?null:v.trim();
-		}
-
-		function stopPulse(){ if(pulse){clearInterval(pulse);pulse=null;} $led.attr('opacity',1); }
-		function startPulse(){
-			stopPulse(); var o=1,d=-1;
-			pulse=setInterval(function(){o+=d*0.045;if(o<=0.42)d=1;if(o>=1)d=-1;$led.attr('opacity',o);},50);
-		}
-
-		function fmt(ms){
-			var m=Math.floor(ms/60000);
-			if(m<1)return '';
-			if(m<60)return 'depuis '+m+' min';
-			var h=Math.floor(m/60), r=m%60;
-			return 'depuis '+h+' h'+(r>0?' '+r:'');
-		}
-
-		function refresh(){
-			var etat=read('etat')||'';
-			var online=read('online');
-			var e=etat.toLowerCase();
-			var isOn = (online==='1')||e.indexOf('allum')>=0||e.indexOf('jeu')>=0;
-			var isRest = e.indexOf('veille')>=0||e.indexOf('repos')>=0;
-
-			$w.find('#ps5et'+wid).text(etat||'--');
-
-			var state = isOn?'on':(isRest?'rest':'off');
-			if(state!==lastState){ since=Date.now(); lastState=state; }
-
-			if(isOn){
-				$led.attr('fill','#4da6ff'); $dot.css({background:'#4da6ff','box-shadow':'0 0 9px #4da6ff'});
-				$glow.attr('opacity',0.14);
-				$scene.css('background','radial-gradient(ellipse at 50% 42%,#1a2340 0%,#12141a 72%)');
-				startPulse();
-			} else if(isRest){
-				$led.attr('fill','#f59e0b'); $dot.css({background:'#f59e0b','box-shadow':'0 0 9px #f59e0b'});
-				$glow.attr('opacity',0.07).attr('fill','#f59e0b');
-				$scene.css('background','radial-gradient(ellipse at 50% 42%,#2a2418 0%,#12141a 72%)');
-				stopPulse();
-			} else {
-				$led.attr('fill','#3f4654'); $dot.css({background:'#3f4654','box-shadow':'none'});
-				$glow.attr('opacity',0);
-				$scene.css('background','radial-gradient(ellipse at 50% 42%,#181a20 0%,#12141a 72%)');
-				stopPulse();
-			}
-
-			var app=$w.find('#ps5ap'+wid).text().trim();
-			if(!isOn||app===''){ $w.find('#ps5ap'+wid).text(isOn?'—':'—'); }
-
-			$w.find('#ps5tm'+wid).text(since && state!=='off' ? fmt(Date.now()-since) : '');
-		}
-
-		setTimeout(refresh,500);
-		setInterval(refresh,3000);
+		var $w = $('.ps5-widget[data-eqLogic_id=#id#]').last();
+		if($w.length === 0) return;
+		var etat = ($w.find('.ps5-etat').text() || '').toLowerCase();
+		var isOn = etat.indexOf('allum') >= 0 || etat.indexOf('jeu') >= 0;
+		var isRest = etat.indexOf('veille') >= 0 || etat.indexOf('repos') >= 0;
+		var col = isOn ? '#4da6ff' : (isRest ? '#f59e0b' : '#3f4654');
+		$w.find('.ps5-led').attr('fill', col);
+		$w.find('.ps5-dot').css('background', col);
 	})();
 	</script>
 </div>
