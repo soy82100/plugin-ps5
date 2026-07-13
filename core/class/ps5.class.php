@@ -1,11 +1,15 @@
 <?php
 /* This file is part of Jeedom. Plugin PS5.
  *
- * Communication avec la PlayStation 5 via le protocole DDP
- * (Device Discovery Protocol) sur le port UDP 9302 :
- *  - SRCH   : interroge l'état de la console (200 Ok = allumée, 620 = veille)
- *  - WAKEUP : réveille la console (nécessite un user-credential)
- * La mise en veille passe par un CLI Python interne (pyremoteplay).
+ * Communication avec la PlayStation 5 :
+ *
+ *  - Etat et application en cours : protocole DDP (Device Discovery Protocol,
+ *    UDP 9302), implemente en PHP pur. Aucune dependance.
+ *
+ *  - Reveil et mise en veille : via resources/ps5_cli.py (pyremoteplay), qui
+ *    s'appuie sur l'appairage PSN realise une fois en SSH.
+ *    Le reveil accepte aussi la methode historique par paquet WAKEUP DDP si un
+ *    user-credential est renseigne sur l'equipement (retrocompatibilite).
  */
 
 require_once dirname(__FILE__) . '/../../../../core/php/core.inc.php';
@@ -17,8 +21,6 @@ class ps5 extends eqLogic {
 
 	/*     * *************************** Cron ****************************** */
 
-	// Appelé par Jeedom toutes les minutes (activer "cron" dans la config du plugin)
-	// L'intervalle réel est configurable dans la configuration du plugin (défaut : 1 min)
 	public static function cron() {
 		$interval = (int) config::byKey('refreshInterval', 'ps5', 1);
 		if ($interval < 1) {
@@ -127,25 +129,12 @@ class ps5 extends eqLogic {
 	/**
 	 * Widget d'équipement personnalisé.
 	 *
-	 * Le widget n'est appliqué que sur le dashboard et le mobile.
-	 *
-	 * Le module Design de Jeedom (versions 'dview' / 'mview') ne gère pas les
-	 * templates d'équipement personnalisés : l'élément déposé sur le design perd
-	 * son positionnement absolu au premier rafraîchissement, se retrouve rejeté en
-	 * bas de page, et devient impossible à sélectionner, à déplacer ou à
-	 * paramétrer par clic droit.
-	 * On y renvoie donc volontairement le rendu standard de Jeedom, qui reste
-	 * pleinement manipulable.
-	 *
-	 * Important : ce test doit porter sur $_version AVANT jeedom::versionAlias(),
-	 * car cette dernière convertit 'dview' en 'dashboard' — le contexte Design
-	 * deviendrait alors indétectable.
+	 * Le div racine du template porte la classe `eqLogic-widget` : c'est elle que
+	 * recherchent les sélecteurs du module Design (desktop/js/plan.js) pour
+	 * appliquer position/dimensions et activer déplacement, redimensionnement et
+	 * menu contextuel. Sans elle, l'élément est invisible pour le Design.
 	 */
 	public function toHtml($_version = 'dashboard') {
-		if (in_array($_version, array('dview', 'mview'))) {
-			return parent::toHtml($_version);
-		}
-
 		$replace = $this->preToHtml($_version);
 		if (!is_array($replace)) {
 			return $replace;
@@ -221,7 +210,6 @@ class ps5 extends eqLogic {
 			$result['etat'] = __('Veille', __FILE__);
 		}
 
-		// La réponse contient des champs clé:valeur (host-name, running-app-name, ...)
 		foreach (explode("\n", $buf) as $line) {
 			$pos = strpos($line, ':');
 			if ($pos === false) {
@@ -239,44 +227,31 @@ class ps5 extends eqLogic {
 		return $result;
 	}
 
-	// Réveil de la console via paquet WAKEUP (nécessite le user-credential)
-	public function wake() {
-		$ip = trim($this->getConfiguration('ip'));
-		$credential = trim($this->getConfiguration('credential'));
-		if ($ip == '') {
-			throw new Exception(__('Aucune adresse IP configurée', __FILE__));
-		}
-		if ($credential == '') {
-			throw new Exception(__('Aucun user-credential configuré : voir l\'onglet de configuration de l\'équipement', __FILE__));
-		}
+	/*     * ******************* Appels au CLI Python *********************** */
 
-		$socket = @socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
-		if ($socket === false) {
-			throw new Exception(__('Impossible de créer la socket UDP', __FILE__));
+	/**
+	 * Interpréteur Python à utiliser.
+	 *
+	 * pyremoteplay est installé dans un environnement virtuel dédié au plugin.
+	 * Le Python système ne connaît pas la bibliothèque : il faut appeler celui du
+	 * venv, sinon le plugin ne fonctionnerait que sur les installations où la lib
+	 * a été posée à la main.
+	 */
+	private static function getPython() {
+		$venv = dirname(__FILE__) . '/../../resources/python_venv/bin/python3';
+		if (file_exists($venv)) {
+			return $venv;
 		}
-		$msg = "WAKEUP * HTTP/1.1\n" .
-			"client-type:vr\n" .
-			"auth-type:R\n" .
-			"model:w\n" .
-			"app-type:r\n" .
-			"user-credential:" . $credential . "\n" .
-			"device-discovery-protocol-version:" . self::DDP_VERSION . "\n";
-		@socket_sendto($socket, $msg, strlen($msg), 0, $ip, self::DDP_PORT);
-		socket_close($socket);
-		log::add('ps5', 'info', $this->getHumanName() . ' : paquet WAKEUP envoyé à ' . $ip);
+		return '/usr/bin/python3'; // repli : installation manuelle sur le Python système
 	}
 
 	/**
-	 * Mise en veille via le CLI Python interne (pyremoteplay).
+	 * Exécute une action du CLI Python et retourne sa réponse décodée.
 	 *
-	 * Historique : playactor (Node.js) était utilisé jusqu'ici, mais le projet
-	 * n'est plus maintenu depuis 2022 et son enregistrement échoue avec une
-	 * erreur 403 sur les firmwares PS5 récents. pyremoteplay implémente le même
-	 * protocole Remote Play, avec un appairage fonctionnel.
-	 *
-	 * L'appairage est à faire une seule fois, en SSH (voir la documentation).
+	 * HOME est indispensable : pyremoteplay y cherche le profil d'appairage
+	 * (/var/www/.pyremoteplay/.profile.json). Jeedom n'exporte pas toujours HOME.
 	 */
-	public function standby() {
+	private function execCli($action) {
 		$ip = trim($this->getConfiguration('ip'));
 		if ($ip == '') {
 			throw new Exception(__('Aucune adresse IP configurée', __FILE__));
@@ -287,10 +262,8 @@ class ps5 extends eqLogic {
 			throw new Exception(__('ps5_cli.py introuvable dans le dossier resources du plugin', __FILE__));
 		}
 
-		// HOME est indispensable : pyremoteplay y cherche le profil d'appairage
-		// (/var/www/.pyremoteplay/.profile.json). Jeedom n'exporte pas toujours HOME.
-		$cmd = 'HOME=/var/www /usr/bin/python3 ' . escapeshellarg($cli)
-			. ' standby --ip ' . escapeshellarg($ip) . ' 2>&1';
+		$cmd = 'HOME=/var/www ' . escapeshellarg(self::getPython()) . ' ' . escapeshellarg($cli)
+			. ' ' . escapeshellarg($action) . ' --ip ' . escapeshellarg($ip) . ' 2>&1';
 
 		log::add('ps5', 'info', $this->getHumanName() . ' : ' . $cmd);
 		exec($cmd, $output, $code);
@@ -302,9 +275,63 @@ class ps5 extends eqLogic {
 			throw new Exception(__('Réponse illisible du CLI : ', __FILE__) . $raw);
 		}
 		if (empty($json['success'])) {
-			throw new Exception(__('Échec de la mise en veille : ', __FILE__)
-				. (isset($json['error']) ? $json['error'] : __('erreur inconnue', __FILE__)));
+			throw new Exception(isset($json['error']) ? $json['error'] : __('erreur inconnue', __FILE__));
 		}
+		return $json;
+	}
+
+	/**
+	 * Réveil de la console.
+	 *
+	 * Deux méthodes, par ordre de préférence :
+	 *
+	 *  1. Si un user-credential est renseigné sur l'équipement : paquet WAKEUP DDP
+	 *     en PHP pur (instantané, aucune dépendance). Conservé pour les
+	 *     installations existantes.
+	 *
+	 *  2. Sinon : pyremoteplay, qui réveille la console à partir du seul profil
+	 *     d'appairage. C'est désormais la méthode recommandée — le user-credential
+	 *     ne peut plus être récupéré, playactor échouant à l'appairage (403) sur
+	 *     les firmwares PS5 récents.
+	 */
+	public function wake() {
+		$ip = trim($this->getConfiguration('ip'));
+		if ($ip == '') {
+			throw new Exception(__('Aucune adresse IP configurée', __FILE__));
+		}
+
+		$credential = trim($this->getConfiguration('credential'));
+
+		if ($credential != '') {
+			$socket = @socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+			if ($socket === false) {
+				throw new Exception(__('Impossible de créer la socket UDP', __FILE__));
+			}
+			$msg = "WAKEUP * HTTP/1.1\n" .
+				"client-type:vr\n" .
+				"auth-type:R\n" .
+				"model:w\n" .
+				"app-type:r\n" .
+				"user-credential:" . $credential . "\n" .
+				"device-discovery-protocol-version:" . self::DDP_VERSION . "\n";
+			@socket_sendto($socket, $msg, strlen($msg), 0, $ip, self::DDP_PORT);
+			socket_close($socket);
+			log::add('ps5', 'info', $this->getHumanName() . ' : paquet WAKEUP envoyé à ' . $ip);
+			return;
+		}
+
+		$this->execCli('wakeup');
+	}
+
+	/**
+	 * Mise en veille via pyremoteplay.
+	 *
+	 * playactor (Node.js) était utilisé jusqu'ici, mais le projet n'est plus
+	 * maintenu depuis 2022 et son enregistrement échoue avec une erreur 403 sur
+	 * les firmwares PS5 récents.
+	 */
+	public function standby() {
+		$this->execCli('standby');
 	}
 }
 
@@ -330,3 +357,4 @@ class ps5Cmd extends cmd {
 		return;
 	}
 }
+
