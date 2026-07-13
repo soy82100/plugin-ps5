@@ -1,4 +1,4 @@
-<div class="eqLogic ps5-widget" data-eqLogic_id="#id#" data-version="#version#" style="#style#">
+<div class="eqLogic eqLogic-widget allowResize ps5-widget #custom_layout# #eqLogic_class# #class# #category#" data-eqType="#eqType#" data-eqLogic_id="#id#" data-eqLogic_uid="#uid#" data-version="#version#" data-translate-category="#translate_category#" data-category="#category#" data-tags="#tags#" style="width: #width#;height: #height#;#style#">
 	<div class="ps5-card">
 		<div class="ps5-console">
 			<svg viewBox="0 0 70 100" class="ps5-svg" preserveAspectRatio="xMidYMid meet">
@@ -46,55 +46,70 @@
 	<span class="cmdValue" data-cmd_id="#etat_id#" data-ps5="etat" style="display:none;">#etat_value#</span>
 
 	<style>
-		/* Le widget remplit integralement la boite qu'on lui donne (dashboard ou
-		   Design). Aucune dimension fixe : c'est ce qui permet de le redimensionner
-		   depuis les parametres du Design, et ce qui l'empeche de deborder de son
-		   conteneur (un element de largeur fixe qui deborde retombe dans le flux du
-		   document et se retrouve rejete en bas de page). */
+		/* IMPORTANT - ne pas fixer width/height sur .ps5-widget :
+		   le module Design (desktop/js/plan.js) applique lui-meme
+		   position:absolute + top/left/width/height EN STYLE INLINE sur l'element
+		   portant la classe .eqLogic-widget. C'est cette classe, presente sur le
+		   div racine ci-dessus, qui rend l'element positionnable, deplacable,
+		   redimensionnable (allowResize) et accessible au clic droit.
+		   Toute regle width/height ici entrerait en conflit avec ce mecanisme. */
 		.ps5-widget{
-			display:block;
-			width:100%;
-			height:100%;
-			min-width:0;
-			min-height:0;
 			box-sizing:border-box;
 			overflow:hidden;
 			background:transparent !important;
 			border:0 !important;
 			box-shadow:none !important;
+			padding:0 !important;
 		}
+
+		/* Disposition verticale : console en haut, etat et commandes dessous.
+		   La carte remplit integralement la boite fournie par le Design. */
 		.ps5-widget .ps5-card{
 			display:flex;
+			flex-direction:column;
 			align-items:center;
+			justify-content:center;
 			width:100%;
 			height:100%;
-			min-height:70px;
-			gap:4%;
-			padding:6%;
+			min-height:140px;
+			gap:0.4em;
+			padding:5%;
 			box-sizing:border-box;
 			background:transparent !important;
 		}
+
 		.ps5-widget .ps5-console{
-			flex:0 0 auto;
-			height:100%;
-			max-height:110px;
+			flex:1 1 auto;
+			min-height:0;
+			width:100%;
 			display:flex;
 			align-items:center;
+			justify-content:center;
 		}
 		.ps5-widget .ps5-svg{
 			height:100%;
-			max-height:100px;
-			min-height:48px;
+			max-height:100%;
+			min-height:44px;
 			width:auto;
+			max-width:100%;
 			display:block;
 			overflow:visible;
 		}
+
 		.ps5-widget .ps5-info{
-			flex:1 1 auto;
+			flex:0 0 auto;
+			width:100%;
 			min-width:0;
-			overflow:hidden;
+			text-align:center;
 		}
-		.ps5-widget .ps5-head{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+
+		.ps5-widget .ps5-head{
+			display:flex;
+			align-items:center;
+			justify-content:center;
+			gap:0.4em;
+			margin-bottom:2px;
+		}
 		.ps5-widget .ps5-dot{
 			width:0.6em;height:0.6em;border-radius:50%;
 			background:#4da6ff;display:inline-block;flex-shrink:0;
@@ -108,19 +123,25 @@
 		.ps5-widget .ps5-app{
 			font-size:0.78em;
 			color:rgba(234,234,234,0.72) !important;
-			margin-bottom:2px;
 			text-shadow:0 1px 2px rgba(0,0,0,0.5);
 			white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 		}
 		.ps5-widget .ps5-timer{
 			font-size:0.68em;
 			color:rgba(234,234,234,0.55) !important;
-			margin-bottom:6px;
+			margin-bottom:0.4em;
 			white-space:nowrap;overflow:hidden;
 		}
-		.ps5-widget .ps5-actions{display:flex;gap:4%;}
+
+		.ps5-widget .ps5-actions{
+			display:flex;
+			justify-content:center;
+			gap:0.4em;
+			width:100%;
+		}
 		.ps5-widget .ps5-btn{
 			flex:1 1 0;
+			max-width:3.2em;
 			text-align:center;
 			padding:0.4em 0;
 			background:rgba(255,255,255,0.10);
@@ -142,21 +163,13 @@
 		if($w.length===0||$w.data('ps5-init'))return;
 		$w.data('ps5-init',true);
 
-		/* Dans le module Design, le conteneur applique son propre fond : on le
-		   neutralise pour que le widget s'integre au theme. */
-		var $design=$w.closest('.div_design');
-		if($design.length>0){
-			$design.css({'background':'transparent','background-color':'transparent',
-			             'border':'none','box-shadow':'none','overflow':'hidden'});
-		}
-
-		/* Tout le texte est dimensionne en "em" : il suffit de piloter la taille
-		   de base du widget pour que l'ensemble grandisse ou retrecisse avec la
-		   boite. C'est ce qui rend le redimensionnement du Design effectif. */
+		/* Le texte est dimensionne en "em" : on pilote la taille de base selon la
+		   boite pour que tout grandisse ou retrecisse ensemble quand l'element est
+		   redimensionne depuis le Design. */
 		function rescale(){
 			var h=$w.height(), wpx=$w.width();
 			if(!h||!wpx)return;
-			var base=Math.max(9,Math.min(16,Math.min(h/6,wpx/16)));
+			var base=Math.max(9,Math.min(18,Math.min(h/10,wpx/12)));
 			$w.css('font-size',base+'px');
 		}
 		rescale();
