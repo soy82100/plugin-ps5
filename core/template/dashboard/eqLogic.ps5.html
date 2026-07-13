@@ -46,26 +46,93 @@
 	<span class="cmdValue" data-cmd_id="#etat_id#" data-ps5="etat" style="display:none;">#etat_value#</span>
 
 	<style>
-		.ps5-widget{display:inline-block;vertical-align:top;background:transparent !important;border:0 !important;box-shadow:none !important;}
-		.ps5-widget .ps5-card{display:flex;align-items:center;gap:12px;padding:8px;background:transparent !important;width:240px;box-sizing:border-box;}
-		.ps5-widget .ps5-console{flex:0 0 56px;}
-		.ps5-widget .ps5-svg{width:56px;height:82px;display:block;overflow:visible;}
-		.ps5-widget .ps5-info{flex:1;min-width:0;overflow:hidden;}
+		/* Le widget remplit integralement la boite qu'on lui donne (dashboard ou
+		   Design). Aucune dimension fixe : c'est ce qui permet de le redimensionner
+		   depuis les parametres du Design, et ce qui l'empeche de deborder de son
+		   conteneur (un element de largeur fixe qui deborde retombe dans le flux du
+		   document et se retrouve rejete en bas de page). */
+		.ps5-widget{
+			display:block;
+			width:100%;
+			height:100%;
+			min-width:0;
+			min-height:0;
+			box-sizing:border-box;
+			overflow:hidden;
+			background:transparent !important;
+			border:0 !important;
+			box-shadow:none !important;
+		}
+		.ps5-widget .ps5-card{
+			display:flex;
+			align-items:center;
+			width:100%;
+			height:100%;
+			min-height:70px;
+			gap:4%;
+			padding:6%;
+			box-sizing:border-box;
+			background:transparent !important;
+		}
+		.ps5-widget .ps5-console{
+			flex:0 0 auto;
+			height:100%;
+			max-height:110px;
+			display:flex;
+			align-items:center;
+		}
+		.ps5-widget .ps5-svg{
+			height:100%;
+			max-height:100px;
+			min-height:48px;
+			width:auto;
+			display:block;
+			overflow:visible;
+		}
+		.ps5-widget .ps5-info{
+			flex:1 1 auto;
+			min-width:0;
+			overflow:hidden;
+		}
 		.ps5-widget .ps5-head{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
-		.ps5-widget .ps5-dot{width:8px;height:8px;border-radius:50%;background:#4da6ff;display:inline-block;flex-shrink:0;}
-		.ps5-widget .ps5-etat{font-size:14px;font-weight:600;color:#eaeaea !important;text-shadow:0 1px 2px rgba(0,0,0,0.55);}
-		.ps5-widget .ps5-app{font-size:11px;color:rgba(234,234,234,0.72) !important;margin-bottom:2px;min-height:14px;text-shadow:0 1px 2px rgba(0,0,0,0.5);}
-		.ps5-widget .ps5-timer{font-size:10px;color:rgba(234,234,234,0.55) !important;margin-bottom:8px;min-height:12px;}
-		.ps5-widget .ps5-actions{display:flex;gap:5px;}
-		.ps5-widget .ps5-btn{flex:1;text-align:center;padding:6px 2px;background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.20);border-radius:6px;cursor:pointer;transition:background .15s;}
+		.ps5-widget .ps5-dot{
+			width:0.6em;height:0.6em;border-radius:50%;
+			background:#4da6ff;display:inline-block;flex-shrink:0;
+		}
+		.ps5-widget .ps5-etat{
+			font-size:1em;font-weight:600;
+			color:#eaeaea !important;
+			text-shadow:0 1px 2px rgba(0,0,0,0.55);
+			white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+		}
+		.ps5-widget .ps5-app{
+			font-size:0.78em;
+			color:rgba(234,234,234,0.72) !important;
+			margin-bottom:2px;
+			text-shadow:0 1px 2px rgba(0,0,0,0.5);
+			white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+		}
+		.ps5-widget .ps5-timer{
+			font-size:0.68em;
+			color:rgba(234,234,234,0.55) !important;
+			margin-bottom:6px;
+			white-space:nowrap;overflow:hidden;
+		}
+		.ps5-widget .ps5-actions{display:flex;gap:4%;}
+		.ps5-widget .ps5-btn{
+			flex:1 1 0;
+			text-align:center;
+			padding:0.4em 0;
+			background:rgba(255,255,255,0.10);
+			border:1px solid rgba(255,255,255,0.20);
+			border-radius:6px;
+			cursor:pointer;
+			transition:background .15s;
+		}
 		.ps5-widget .ps5-btn:hover{background:rgba(255,255,255,0.22);}
 		.ps5-widget .ps5-btn:active{transform:scale(0.95);}
-		.ps5-widget .ps5-btn i{font-size:13px;color:#eaeaea;}
+		.ps5-widget .ps5-btn i{font-size:0.85em;color:#eaeaea;}
 		.ps5-widget .ps5-btn-refresh i{color:#4da6ff;}
-
-		/* Neutralise le conteneur du module Design */
-		.div_design .ps5-widget,
-		.div_design > .ps5-widget{background:transparent !important;}
 	</style>
 
 	<script>
@@ -75,13 +142,26 @@
 		if($w.length===0||$w.data('ps5-init'))return;
 		$w.data('ps5-init',true);
 
-		/* Dans le module Design, Jeedom enveloppe le widget dans un conteneur
-		   qui applique son propre fond/bordure : on le rend transparent. */
+		/* Dans le module Design, le conteneur applique son propre fond : on le
+		   neutralise pour que le widget s'integre au theme. */
 		var $design=$w.closest('.div_design');
 		if($design.length>0){
-			$design.css({'background':'transparent','background-color':'transparent','border':'none','box-shadow':'none'});
-			$design.find('> .eqLogic-widget, > .widget, .cmd-widget').css({'background':'transparent','background-color':'transparent'});
+			$design.css({'background':'transparent','background-color':'transparent',
+			             'border':'none','box-shadow':'none','overflow':'hidden'});
 		}
+
+		/* Tout le texte est dimensionne en "em" : il suffit de piloter la taille
+		   de base du widget pour que l'ensemble grandisse ou retrecisse avec la
+		   boite. C'est ce qui rend le redimensionnement du Design effectif. */
+		function rescale(){
+			var h=$w.height(), wpx=$w.width();
+			if(!h||!wpx)return;
+			var base=Math.max(9,Math.min(16,Math.min(h/6,wpx/16)));
+			$w.css('font-size',base+'px');
+		}
+		rescale();
+		$(window).on('resize',rescale);
+		setInterval(rescale,2000);
 
 		var $led=$w.find('.ps5-led,.ps5-glow'), $dot=$w.find('.ps5-dot');
 		var pulse=null, since=null, last=null;
@@ -120,8 +200,6 @@
 			var col = isOn?'#4da6ff':(isRest?'#f59e0b':'#9aa2b1');
 			$led.attr('fill',col);
 			$dot.css('background',col);
-
-			/* Halo visible seulement quand la console est allumee ou en veille */
 			$w.find('.ps5-glow').css('display', st==='off' ? 'none' : '');
 
 			if(isOn){ startPulse(); } else { stopPulse(); }
