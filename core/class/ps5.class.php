@@ -124,8 +124,28 @@ class ps5 extends eqLogic {
 		}
 	}
 
-	// Widget d'équipement personnalisé pour le dashboard
+	/**
+	 * Widget d'équipement personnalisé.
+	 *
+	 * Le widget n'est appliqué que sur le dashboard et le mobile.
+	 *
+	 * Le module Design de Jeedom (versions 'dview' / 'mview') ne gère pas les
+	 * templates d'équipement personnalisés : l'élément déposé sur le design perd
+	 * son positionnement absolu au premier rafraîchissement, se retrouve rejeté en
+	 * bas de page, et devient impossible à sélectionner, à déplacer ou à
+	 * paramétrer par clic droit.
+	 * On y renvoie donc volontairement le rendu standard de Jeedom, qui reste
+	 * pleinement manipulable.
+	 *
+	 * Important : ce test doit porter sur $_version AVANT jeedom::versionAlias(),
+	 * car cette dernière convertit 'dview' en 'dashboard' — le contexte Design
+	 * deviendrait alors indétectable.
+	 */
 	public function toHtml($_version = 'dashboard') {
+		if (in_array($_version, array('dview', 'mview'))) {
+			return parent::toHtml($_version);
+		}
+
 		$replace = $this->preToHtml($_version);
 		if (!is_array($replace)) {
 			return $replace;
@@ -254,7 +274,7 @@ class ps5 extends eqLogic {
 	 * erreur 403 sur les firmwares PS5 récents. pyremoteplay implémente le même
 	 * protocole Remote Play, avec un appairage fonctionnel.
 	 *
-	 * L'appairage est à faire une fois, en SSH (voir la documentation).
+	 * L'appairage est à faire une seule fois, en SSH (voir la documentation).
 	 */
 	public function standby() {
 		$ip = trim($this->getConfiguration('ip'));
