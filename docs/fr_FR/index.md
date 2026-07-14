@@ -60,7 +60,7 @@ Après sauvegarde, les commandes suivantes sont créées automatiquement :
 | `online` | info binaire | 1 = allumée, 0 = veille ou éteinte |
 | `etat` | info texte | « Allumée », « Veille », « Éteinte / injoignable » |
 | `application` | info texte | Jeu en cours (nécessite le jeton npsso) |
-| `jaquette` | info texte | URL de la jaquette du jeu (invisible par défaut) |
+| `jaquette` | info texte | URL de la jaquette du jeu en cours |
 | `wake` | action | Réveille la console |
 | `standby` | action | Met la console en veille |
 
