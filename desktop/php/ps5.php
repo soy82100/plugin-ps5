@@ -120,14 +120,35 @@ $eqLogics = eqLogic::byType($plugin->getId());
 										<input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="ip" placeholder="192.168.1.XX"/>
 									</div>
 								</div>
+
+								<legend><i class="fas fa-gamepad"></i> {{Jeu en cours (optionnel)}}</legend>
 								<div class="form-group">
-									<label class="col-sm-4 control-label">{{User-credential}}
-										<sup><i class="fas fa-question-circle tooltips" title="{{Nécessaire uniquement pour la commande Réveiller. Chaîne hexadécimale de 64 caractères, à récupérer une fois avec playactor (voir documentation).}}"></i></sup>
-									</label>
-									<div class="col-sm-6">
-										<input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="credential" placeholder="{{Optionnel : requis pour le réveil à distance}}"/>
+									<div class="col-sm-offset-1 col-sm-10">
+										<div class="alert alert-info" style="padding:8px;">
+											{{Les firmwares PS5 récents ne diffusent plus le nom du jeu sur le réseau local : seule l'API de présence PlayStation le fournit.}}<br/>
+											{{Ce champ est facultatif. Laissé vide, le plugin reste entièrement local et la commande "Application en cours" reste vide.}}
+										</div>
 									</div>
 								</div>
+								<div class="form-group">
+									<label class="col-sm-4 control-label">{{Jeton npsso}}
+										<sup><i class="fas fa-question-circle tooltips" title="{{Jeton de session PSN. Connectez-vous à votre compte sur playstation.com, puis ouvrez https://ca.account.sony.com/api/v1/ssocookie dans le même navigateur : copiez uniquement la valeur du champ npsso (64 caractères). Ce jeton expire au bout de quelques semaines et devra être renouvelé.}}"></i></sup>
+									</label>
+									<div class="col-sm-6">
+										<input type="password" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="npsso" placeholder="{{Optionnel : requis pour afficher le jeu en cours}}"/>
+									</div>
+								</div>
+
+								<legend><i class="fas fa-history"></i> {{Héritage}}</legend>
+								<div class="form-group">
+									<label class="col-sm-4 control-label">{{User-credential}}
+										<sup><i class="fas fa-question-circle tooltips" title="{{Ancienne méthode de réveil, conservée pour les installations existantes. Ce champ n'est plus nécessaire : depuis l'appairage à pyremoteplay, le réveil fonctionne sans lui. Laissez-le vide.}}"></i></sup>
+									</label>
+									<div class="col-sm-6">
+										<input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="credential" placeholder="{{Obsolète : laisser vide}}"/>
+									</div>
+								</div>
+
 								<div class="form-group">
 									<div class="col-sm-offset-4 col-sm-6">
 										<a class="btn btn-info" id="bt_refreshInfo"><i class="fas fa-sync"></i> {{Tester / Rafraîchir maintenant}}</a>

@@ -35,22 +35,22 @@
 			<div class="ps5-timer"></div>
 
 			<div class="ps5-actions">
-				<div class="ps5-btn" data-cmd_id="#wake_id#" title="Reveiller"><i class="fas fa-power-off"></i></div>
+				<div class="ps5-btn" data-cmd_id="#wake_id#" title="Réveiller"><i class="fas fa-power-off"></i></div>
 				<div class="ps5-btn" data-cmd_id="#standby_id#" title="Mettre en veille"><i class="fas fa-moon"></i></div>
-				<div class="ps5-btn ps5-btn-refresh" data-cmd_id="#refresh_id#" title="Rafraichir"><i class="fas fa-sync"></i></div>
+				<div class="ps5-btn ps5-btn-refresh" data-cmd_id="#refresh_id#" title="Rafraîchir"><i class="fas fa-sync"></i></div>
 			</div>
 		</div>
 	</div>
 
-	<span class="cmdValue" data-cmd_id="#online_id#" data-ps5="online" style="display:none;">#online_value#</span>
-	<span class="cmdValue" data-cmd_id="#etat_id#" data-ps5="etat" style="display:none;">#etat_value#</span>
+	<span class="ps5-val" data-ps5="online" style="display:none;">#online_value#</span>
+	<span class="ps5-val" data-ps5="etat" style="display:none;">#etat_value#</span>
+	<span class="ps5-val" data-ps5="application" style="display:none;">#application_value#</span>
 
 	<style>
 		/* Le div racine porte la classe .eqLogic-widget : c'est elle que recherchent
 		   les selecteurs du module Design (desktop/js/plan.js) pour appliquer
 		   position/dimensions et activer deplacement, redimensionnement et menu
-		   contextuel. Sans elle, l'element est invisible pour le Design.
-		   On ne fixe donc PAS width/height en CSS : le conteneur commande. */
+		   contextuel. On ne fixe donc PAS width/height ici : le conteneur commande. */
 		.ps5-widget{
 			min-width:160px;
 			min-height:260px;
@@ -107,21 +107,24 @@
 			width:0.6em;height:0.6em;border-radius:50%;
 			background:#4da6ff;display:inline-block;flex-shrink:0;
 		}
+
+		/* var(--txt-color) : variable de theme Jeedom. Le texte reste lisible
+		   aussi bien sur un theme clair que sombre. */
 		.ps5-widget .ps5-etat{
 			font-size:1em;font-weight:600;
-			color:#eaeaea !important;
-			text-shadow:0 1px 2px rgba(0,0,0,0.55);
+			color:var(--txt-color, #444) !important;
 			white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 		}
 		.ps5-widget .ps5-app{
 			font-size:0.78em;
-			color:rgba(234,234,234,0.72) !important;
-			text-shadow:0 1px 2px rgba(0,0,0,0.5);
+			color:var(--txt-color, #444) !important;
+			opacity:0.75;
 			white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 		}
 		.ps5-widget .ps5-timer{
 			font-size:0.68em;
-			color:rgba(234,234,234,0.55) !important;
+			color:var(--txt-color, #444) !important;
+			opacity:0.55;
 			white-space:nowrap;overflow:hidden;
 		}
 		.ps5-widget .ps5-app:empty,
@@ -140,17 +143,21 @@
 			flex:0 1 3em;
 			text-align:center;
 			padding:0.35em 0;
-			background:rgba(255,255,255,0.10);
-			border:1px solid rgba(255,255,255,0.20);
+			background:rgba(128,128,128,0.18);
+			border:1px solid rgba(128,128,128,0.45);
 			border-radius:6px;
 			cursor:pointer;
 			pointer-events:auto;
 			transition:background .15s;
 		}
-		.ps5-widget .ps5-btn:hover{background:rgba(255,255,255,0.22);}
+		.ps5-widget .ps5-btn:hover{background:rgba(128,128,128,0.35);}
 		.ps5-widget .ps5-btn:active{transform:scale(0.92);}
-		.ps5-widget .ps5-btn.ps5-busy{opacity:0.45;pointer-events:none;}
-		.ps5-widget .ps5-btn i{font-size:0.85em;color:#eaeaea;pointer-events:none;}
+		.ps5-widget .ps5-btn.ps5-busy{opacity:0.4;pointer-events:none;}
+		.ps5-widget .ps5-btn i{
+			font-size:0.85em;
+			color:var(--txt-color, #444);
+			pointer-events:none;
+		}
 		.ps5-widget .ps5-btn-refresh i{color:#4da6ff;}
 	</style>
 
@@ -164,14 +171,13 @@
 		/* ------------------------------------------------------------------
 		   CABLAGE DES BOUTONS
 
-		   Les boutons ne portent volontairement plus les classes .cmd/.cmdAction :
-		   selon le contexte d'affichage, Jeedom n'attache pas toujours son
-		   gestionnaire de clic aux commandes situees dans un template
-		   personnalise ($._data(bouton,'events') renvoie undefined, le clic part
-		   dans le vide alors qu'il atteint bien l'element).
+		   Jeedom n'attache aucun gestionnaire de clic automatiquement : chaque
+		   template de commande cable le sien (cf. core/template/dashboard/
+		   cmd.action.other.default.html). On fait donc de meme.
 
-		   On appelle donc directement l'API Jeedom : le comportement ne depend plus
-		   du contexte (dashboard, Design, mobile).
+		   La fonction officielle est jeedom.cmd.execute({id: ...}).
+		   (Attention : jeedom.cmd.execCmd() n'existe pas — un appel a ce nom
+		   echoue silencieusement et le bouton reste inerte.)
 		   ------------------------------------------------------------------ */
 		$w.find('.ps5-btn').off('click.ps5').on('click.ps5', function(e){
 			e.preventDefault();
@@ -182,8 +188,9 @@
 			if(!id || isNaN(parseInt(id,10)))return;
 
 			$btn.addClass('ps5-busy');
+			setTimeout(function(){ $btn.removeClass('ps5-busy'); }, 30000);
 
-			jeedom.cmd.execCmd({
+			jeedom.cmd.execute({
 				id: id,
 				error: function(error){
 					$btn.removeClass('ps5-busy');
@@ -193,7 +200,7 @@
 				},
 				success: function(){
 					$btn.removeClass('ps5-busy');
-					setTimeout(refresh,1000);
+					setTimeout(refresh,1500);
 				}
 			});
 		});
@@ -214,7 +221,7 @@
 		var pulse=null, since=null, last=null;
 
 		function read(k){
-			var $e=$w.find('.cmdValue[data-ps5='+k+']');
+			var $e=$w.find('.ps5-val[data-ps5='+k+']');
 			if($e.length===0)return null;
 			var v=$e.text();
 			return (v===undefined||v===null||v==='')?null:v.trim();
@@ -235,11 +242,13 @@
 		function refresh(){
 			var etat=read('etat')||'';
 			var online=read('online');
+			var app=read('application')||'';
 			var e=etat.toLowerCase();
 			var isOn=(online==='1')||e.indexOf('allum')>=0||e.indexOf('jeu')>=0;
 			var isRest=e.indexOf('veille')>=0||e.indexOf('repos')>=0;
 
 			$w.find('.ps5-etat').text(etat||'--');
+			$w.find('.ps5-app').text(isOn ? app : '');
 
 			var st=isOn?'on':(isRest?'rest':'off');
 			if(st!==last){ since=Date.now(); last=st; }
