@@ -1,26 +1,28 @@
 # Plugin PS5
 
 Supervision et contrôle d'une PlayStation 5 depuis Jeedom : état de la console
-(allumée / veille / éteinte), application en cours, réveil à distance et mise en
-veille.
+(allumée / veille / éteinte), jeu en cours, réveil à distance et mise en veille.
 
 ---
 
 ## Fonctionnalités
 
-| Fonction | Dépendance | Configuration requise |
+| Fonction | Méthode | Configuration requise |
 |---|---|---|
-| État de la console | aucune | adresse IP |
-| Application en cours | aucune | adresse IP |
-| Réveil (Wake-on-LAN) | aucune | user-credential |
-| Mise en veille | pyremoteplay | appairage PSN (une fois, en SSH) |
+| État de la console | locale (protocole DDP) | adresse IP |
+| Réveil | locale (pyremoteplay) | appairage PSN (une fois, en SSH) |
+| Mise en veille | locale (pyremoteplay) | appairage PSN (une fois, en SSH) |
+| Jeu en cours + jaquette | API PlayStation (cloud) | jeton npsso — **optionnel** |
 
-L'état, l'application en cours et le réveil fonctionnent **sans aucune
-installation supplémentaire** : ils utilisent le protocole DDP de Sony,
-implémenté directement en PHP.
+**L'état de la console fonctionne sans aucune installation supplémentaire** : il
+utilise le protocole DDP de Sony, implémenté directement en PHP. L'adresse IP
+suffit.
 
-Seule la **mise en veille** nécessite une installation complémentaire, décrite
-plus bas.
+**Le réveil et la mise en veille nécessitent un appairage préalable**, à réaliser
+une seule fois en SSH. La procédure est décrite plus bas.
+
+**Le jeu en cours est optionnel** et repose sur l'API de présence PlayStation.
+Sans jeton, le plugin reste entièrement local.
 
 ---
 
@@ -39,12 +41,16 @@ Pensez à **activer le plugin** après son installation.
 
 Créez un équipement et renseignez :
 
-- **Adresse IP** : l'adresse IP de votre **console PS5**.
+- **Adresse IP** : l'adresse IP de votre **console PS5** (jamais celle de la
+  Portal — voir la section dédiée).
   Attribuez-lui une IP fixe dans votre box ou routeur : si elle change, le plugin
   ne la trouvera plus.
 
-- **User-credential** : nécessaire uniquement pour le **réveil à distance**
-  (voir la section dédiée ci-dessous).
+- **Jeton npsso** : optionnel, uniquement pour afficher le jeu en cours
+  (voir la section dédiée).
+
+- **User-credential** : **champ obsolète**, conservé pour les installations
+  existantes. Laissez-le vide.
 
 Après sauvegarde, les commandes suivantes sont créées automatiquement :
 
@@ -53,45 +59,81 @@ Après sauvegarde, les commandes suivantes sont créées automatiquement :
 | `refresh` | action | Force l'interrogation de la console |
 | `online` | info binaire | 1 = allumée, 0 = veille ou éteinte |
 | `etat` | info texte | « Allumée », « Veille », « Éteinte / injoignable » |
-| `application` | info texte | Jeu ou application en cours |
+| `application` | info texte | Jeu en cours (nécessite le jeton npsso) |
+| `jaquette` | info texte | URL de la jaquette du jeu en cours |
 | `wake` | action | Réveille la console |
 | `standby` | action | Met la console en veille |
 
 ---
 
-## Réveil à distance : récupérer le user-credential
+## Jeu en cours : le jeton npsso
 
-Le paquet de réveil doit être signé par un identifiant lié à votre compte PSN.
-Cet identifiant se récupère une seule fois.
+### Pourquoi un jeton ?
 
-Il correspond au champ `user-credential` utilisé par l'application PlayStation
-lorsqu'elle réveille la console. Reportez-vous à la section correspondante de
-cette documentation pour la procédure de récupération, puis collez la valeur dans
-le champ de configuration de l'équipement.
+Les firmwares PS5 récents ne diffusent plus le nom du jeu sur le réseau local :
+le champ `running-app-name` du protocole DDP n'est plus renseigné. Cette
+information n'est donc **plus récupérable localement**, quel que soit le plugin.
 
-Sans user-credential, la commande **Réveiller** renverra une erreur explicite
-dans les logs. Les autres fonctions ne sont pas affectées.
+La seule source restante est l'**API de présence PlayStation**, qui exige de
+s'authentifier auprès de Sony. C'est le rôle du jeton npsso.
+
+Cette fonction est **entièrement optionnelle**. Sans jeton, le plugin ne
+communique qu'avec votre console, sur votre réseau local.
+
+### Récupérer le jeton
+
+1. Dans un navigateur, connectez-vous sur **https://my.playstation.com** avec le
+   compte PSN **utilisé sur la console**
+2. Dans le **même navigateur**, ouvrez :
+   `https://ca.account.sony.com/api/v1/ssocookie`
+3. La page affiche un court texte de la forme `{"npsso":"xxxxxxxx..."}`
+4. Copiez **uniquement** la valeur entre guillemets (64 caractères), sans les
+   guillemets ni le reste
+5. Collez-la dans le champ **Jeton npsso** de l'équipement, puis sauvegardez
+
+> **Durée de vie** : ce jeton expire au bout de quelques semaines. Lorsque le jeu
+> en cours cesse de remonter, régénérez-le en reprenant cette procédure. Les
+> autres fonctions du plugin ne sont pas affectées par son expiration.
+
+> **Confidentialité** : ce jeton donne accès à votre compte PSN. Ne le partagez
+> avec personne, et ne le collez jamais dans un message public (forum, ticket,
+> capture d'écran).
+
+### Le jeu ne remonte pas ?
+
+- **Aucun profil connecté sur la console.** Une PS5 allumée sur l'écran de
+  sélection d'utilisateur est vue « Allumée » par le plugin, mais l'API PSN la
+  considère hors ligne. Connectez un profil.
+- **État en ligne masqué.** Si le compte est réglé sur « Ne pas afficher mon état
+  en ligne » dans les paramètres de confidentialité PSN, l'API renverra toujours
+  « hors ligne ».
+- **Mauvais compte.** Le jeton doit être généré depuis le compte **connecté sur la
+  console**, pas depuis un autre.
+- **Jeton expiré.** Voir ci-dessus.
 
 ---
 
-## Mise en veille : installation et appairage
+## Réveil et mise en veille : installation et appairage
 
 ### Pourquoi une manipulation manuelle ?
 
-La mise en veille passe par le protocole **Remote Play** de Sony, qui exige que
-Jeedom soit *appairé* à la console — exactement comme le serait une manette ou
-l'application PlayStation.
+Le réveil et la mise en veille passent par le protocole **Remote Play** de Sony,
+qui exige que Jeedom soit *appairé* à la console — exactement comme le serait une
+manette ou l'application PlayStation.
 
 Cet appairage nécessite une connexion à votre compte PSN **via un navigateur**.
 Il ne peut donc pas être automatisé, et doit être réalisé **une seule fois**, en
 ligne de commande. Une fois effectué, il est permanent : il survit aux
 redémarrages et aux mises à jour du plugin.
 
+Tant que l'appairage n'est pas réalisé, ces deux commandes restent sans effet.
+Le reste du plugin fonctionne normalement.
+
 > **Note technique** : les versions précédentes du plugin utilisaient l'outil
 > `playactor`. Ce projet n'est plus maintenu depuis 2022 et son enregistrement
 > échoue désormais avec une erreur `403 Forbidden` sur les firmwares PS5 récents.
 > Il a été remplacé par la bibliothèque Python `pyremoteplay`. Le champ
-> « Chemin vers playactor » a disparu de la configuration : il n'est plus utile.
+> « User-credential » est devenu inutile : le réveil ne s'en sert plus.
 
 ### Prérequis
 
@@ -111,15 +153,14 @@ sudo apt install -y python3-venv
 sudo python3 -m venv /var/www/html/plugins/ps5/resources/python_venv
 
 sudo /var/www/html/plugins/ps5/resources/python_venv/bin/python3 -m pip install \
-    "pyee==9.1.1" async_timeout pyremoteplay
+    "pyee==9.1.1" async_timeout pyremoteplay PSNAWP
 
 sudo chown -R www-data:www-data /var/www/html/plugins/ps5/resources/python_venv
 ```
 
-> **Important** : les trois paquets doivent être installés **en une seule
-> commande**. `pyremoteplay` n'est pas compatible avec `pyee` version 10 ou
-> supérieure ; les installer séparément entraînerait l'écrasement de la version
-> correcte.
+> **Important** : les paquets doivent être installés **en une seule commande**.
+> `pyremoteplay` n'est pas compatible avec `pyee` version 10 ou supérieure ; les
+> installer séparément entraînerait l'écrasement de la version correcte.
 
 Vérification :
 
@@ -183,12 +224,13 @@ Un **code à 8 chiffres** s'affiche. Saisissez-le immédiatement dans le termina
 ls -l /var/www/.pyremoteplay/
 ```
 
-Le fichier `.profile.json` doit être présent. L'appairage est terminé : le bouton
-**Mettre en veille** fonctionne désormais depuis le dashboard.
+Le fichier `.profile.json` doit être présent, et appartenir à `www-data`.
+L'appairage est terminé : les boutons **Réveiller** et **Mettre en veille**
+fonctionnent désormais depuis le dashboard.
 
-La commande prend une dizaine de secondes à s'exécuter : elle établit une session
-Remote Play, envoie l'ordre, puis vérifie que la console est bien passée en
-veille.
+La mise en veille prend une dizaine de secondes à s'exécuter : elle établit une
+session Remote Play, envoie l'ordre, puis vérifie que la console est bien passée
+en veille.
 
 ---
 
@@ -196,7 +238,7 @@ veille.
 
 Le plugin fournit un widget personnalisé : console PS5 stylisée, témoin lumineux
 qui change de couleur selon l'état (bleu clignotant = allumée, orange = veille,
-gris = éteinte), application en cours, durée de session et boutons d'action.
+gris = éteinte), jeu en cours, durée de session et boutons d'action.
 
 ### Activation
 
@@ -226,8 +268,15 @@ ce plugin, et ne peut pas l'être.
 L'équipement doit être créé avec l'adresse IP de la **console PS5**, jamais celle
 de la Portal.
 
-Lorsque vous jouez via la Portal, la console est allumée : le plugin la verra donc
-normalement comme « Allumée ».
+**Lorsque vous jouez via la Portal, tout fonctionne normalement** : la console est
+allumée, le plugin la voit « Allumée », et le jeu en cours remonte comme si vous
+jouiez sur le téléviseur.
+
+En revanche, le plugin **ne peut pas savoir sur quel écran** la partie se joue.
+Pour Sony, la Portal n'est pas un appareil de jeu mais un simple écran déporté :
+l'information n'est exposée nulle part, ni sur le réseau local, ni via l'API de
+présence. Une session sur Portal est indiscernable d'une session sur le
+téléviseur. Il en va de même pour la Lecture à distance sur smartphone ou sur PC.
 
 ---
 
@@ -237,13 +286,17 @@ normalement comme « Allumée ».
 |---|---|---|
 | État toujours « Éteinte / injoignable » | mauvaise IP, ou console sur un autre réseau | vérifiez l'IP, et que Jeedom et la console sont sur le même réseau |
 | L'IP change régulièrement | pas de bail statique | attribuez une IP fixe à la console dans votre box |
-| Le réveil ne fait rien | user-credential absent ou incorrect | voir la section « Réveil à distance » |
-| Veille : « pyremoteplay absent » | bibliothèque non installée | reprendre l'étape 1 |
-| Veille : « aucun compte PSN appairé » | appairage absent, ou fait en root | refaire l'étape 2 **en `www-data`** |
+| Le réveil ou la veille ne fait rien | appairage non réalisé | voir « Réveil et mise en veille » |
+| « pyremoteplay absent » | bibliothèque non installée | reprendre l'étape 1 |
+| « aucun compte PSN appairé » | appairage absent, ou fait en root | refaire l'étape 2 **en `www-data`** |
 | Appairage : `must be awake for initial registration` | console en veille | allumez-la complètement |
 | Appairage : `403 Forbidden` | Lecture à distance désactivée, ou mauvais compte PSN | vérifiez le réglage sur la console et le compte utilisé |
 | Appairage : `Invalid URL` | code PIN saisi au lieu de l'URL | reprendre l'étape 3 |
+| Le jeu en cours reste vide | jeton npsso absent, expiré, ou aucun profil connecté sur la console | voir « Jeu en cours » |
 
 Les logs du plugin (**Analyse → Logs → `ps5`**) contiennent le détail des
 commandes exécutées et des erreurs retournées. Passez le niveau de log en
 **Debug** dans la configuration du plugin pour un diagnostic complet.
+
+> **Avant de publier un log sur le forum** : vérifiez qu'il ne contient ni votre
+> jeton npsso, ni une URL d'appairage. Le mode Debug peut les faire apparaître.
