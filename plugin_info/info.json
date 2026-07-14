@@ -1,14 +1,16 @@
 {
-  "id": "ps5",
-  "name": "PS5",
-  "description": "Supervision et contrôle d'une PlayStation 5 : état (allumée / veille / éteinte), application en cours, réveil à distance et mise en veille.",
-  "licence": "AGPL",
-  "author": "Alex - Soyer Home",
-  "require": "4.2",
-  "category": "multimedia",
-  "hasDependency": false,
-  "hasOwnDeamon": false,
-  "maxDependancyInstallTime": 15,
-  "documentation": "https://github.com/soy82100/plugin-ps5/blob/main/docs/fr_FR/index.md",
-  "changelog": "https://github.com/soy82100/plugin-ps5/commits/main"
+    "id": "ps5",
+    "name": "PS5",
+    "description": "Supervision et contrôle d'une PlayStation 5 : état (allumée / veille / éteinte), jeu en cours, réveil à distance et mise en veille. Widget graphique animé pour le dashboard et le Design.",
+    "licence": "AGPL",
+    "author": "Alex – Soyer Home",
+    "require": "4.2",
+    "category": "multimedia",
+    "language": ["fr_FR"],
+    "compatibility": ["miniplus", "smart", "atlas", "luna", "rpi", "docker", "diy", "mobile", "v4"],
+    "hasDependency": false,
+    "hasOwnDeamon": false,
+    "maxDependancyInstallTime": 0,
+    "documentation": "https://github.com/soy82100/plugin-ps5/blob/beta/docs/fr_FR/index.md",
+    "changelog": "https://github.com/soy82100/plugin-ps5/commits/beta"
 }
