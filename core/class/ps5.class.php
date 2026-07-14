@@ -1,15 +1,17 @@
 <?php
 /* This file is part of Jeedom. Plugin PS5.
  *
- * Communication avec la PlayStation 5 :
+ * Deux sources d'information, volontairement separees :
  *
- *  - Etat et application en cours : protocole DDP (Device Discovery Protocol,
- *    UDP 9302), implemente en PHP pur. Aucune dependance.
+ *  - LOCAL (aucune dependance, aucun cloud) :
+ *      Etat de la console et reveil/veille, via le protocole DDP (UDP 9302)
+ *      et resources/ps5_cli.py (pyremoteplay).
  *
- *  - Reveil et mise en veille : via resources/ps5_cli.py (pyremoteplay), qui
- *    s'appuie sur l'appairage PSN realise une fois en SSH.
- *    Le reveil accepte aussi la methode historique par paquet WAKEUP DDP si un
- *    user-credential est renseigne sur l'equipement (retrocompatibilite).
+ *  - CLOUD (optionnel, desactive par defaut) :
+ *      Jeu en cours, via l'API de presence PSN (PSNAWP).
+ *      Les firmwares PS5 recents ne diffusent PLUS le champ running-app-name
+ *      dans leur reponse DDP : le titre du jeu n'est pas recuperable en local.
+ *      Sans jeton npsso configure, le plugin reste 100% local.
  */
 
 require_once dirname(__FILE__) . '/../../../../core/php/core.inc.php';
@@ -101,6 +103,20 @@ class ps5 extends eqLogic {
 			$app->save();
 		}
 
+		// Jaquette du jeu (URL) - alimentee uniquement si la presence PSN est active
+		$jaquette = $this->getCmd(null, 'jaquette');
+		if (!is_object($jaquette)) {
+			$jaquette = new ps5Cmd();
+			$jaquette->setLogicalId('jaquette');
+			$jaquette->setName(__('Jaquette', __FILE__));
+			$jaquette->setEqLogic_id($this->getId());
+			$jaquette->setType('info');
+			$jaquette->setSubType('string');
+			$jaquette->setIsVisible(0);
+			$jaquette->setOrder($order++);
+			$jaquette->save();
+		}
+
 		$wake = $this->getCmd(null, 'wake');
 		if (!is_object($wake)) {
 			$wake = new ps5Cmd();
@@ -141,7 +157,7 @@ class ps5 extends eqLogic {
 		}
 		$version = jeedom::versionAlias($_version);
 
-		$logicalIds = array('online', 'etat', 'application', 'wake', 'standby', 'refresh');
+		$logicalIds = array('online', 'etat', 'application', 'jaquette', 'wake', 'standby', 'refresh');
 		foreach ($logicalIds as $lid) {
 			$cmd = $this->getCmd(null, $lid);
 			$replace['#' . $lid . '_id#'] = is_object($cmd) ? $cmd->getId() : '';
@@ -158,22 +174,49 @@ class ps5 extends eqLogic {
 			getTemplate('core', $version, 'eqLogic.ps5', 'ps5')));
 	}
 
-	// Interroge la console et met à jour les commandes info
+	/**
+	 * Interroge la console (local) et, si configurée, la présence PSN (cloud).
+	 */
 	public function refreshInfo() {
 		$ip = trim($this->getConfiguration('ip'));
 		if ($ip == '') {
 			return;
 		}
+
 		$result = self::discover($ip);
 		log::add('ps5', 'debug', $this->getHumanName() . ' : ' . json_encode($result));
+
 		$this->checkAndUpdateCmd('online', $result['online']);
 		$this->checkAndUpdateCmd('etat', $result['etat']);
-		$this->checkAndUpdateCmd('application', $result['application']);
+
+		// Jeu en cours : uniquement via la présence PSN, et seulement si la console
+		// est allumée (inutile d'interroger le cloud sinon).
+		$jeu = '';
+		$jaquette = '';
+		if ($result['online'] == 1 && trim($this->getConfiguration('npsso')) != '') {
+			try {
+				$presence = $this->getPresence();
+				$jeu = isset($presence['jeu']) ? $presence['jeu'] : '';
+				$jaquette = isset($presence['jaquette']) ? $presence['jaquette'] : '';
+			} catch (Exception $e) {
+				// Non bloquant : l'état local reste valide même si le cloud échoue.
+				log::add('ps5', 'warning', $this->getHumanName() . ' : présence PSN : ' . $e->getMessage());
+			}
+		}
+
+		$this->checkAndUpdateCmd('application', $jeu);
+		$this->checkAndUpdateCmd('jaquette', $jaquette);
 		$this->refreshWidget();
 	}
 
 	/**
 	 * Envoie un paquet SRCH (DDP) à la console et analyse la réponse.
+	 *
+	 * Note : les firmwares PS5 récents ne renseignent plus `running-app-name`.
+	 * On le lit tout de même, au cas où Sony le réactiverait — mais on n'invente
+	 * plus de valeur par défaut : afficher « Menu d'accueil » alors que la console
+	 * est en jeu est une information fausse.
+	 *
 	 * @return array [online => 0/1, etat => string, application => string]
 	 */
 	public static function discover($ip, $timeoutSec = 2) {
@@ -198,7 +241,6 @@ class ps5 extends eqLogic {
 		socket_close($socket);
 
 		if ($len === false || $buf == '') {
-			// Pas de réponse : console éteinte, IP incorrecte ou console sur un autre VLAN
 			return $result;
 		}
 
@@ -221,9 +263,7 @@ class ps5 extends eqLogic {
 				$result['application'] = $value;
 			}
 		}
-		if ($result['online'] == 1 && $result['application'] == '') {
-			$result['application'] = __('Menu d\'accueil', __FILE__);
-		}
+
 		return $result;
 	}
 
@@ -232,38 +272,34 @@ class ps5 extends eqLogic {
 	/**
 	 * Interpréteur Python à utiliser.
 	 *
-	 * pyremoteplay est installé dans un environnement virtuel dédié au plugin.
-	 * Le Python système ne connaît pas la bibliothèque : il faut appeler celui du
-	 * venv, sinon le plugin ne fonctionnerait que sur les installations où la lib
-	 * a été posée à la main.
+	 * Les bibliothèques sont installées dans un environnement virtuel dédié au
+	 * plugin : le Python système ne les connaît pas.
 	 */
 	private static function getPython() {
 		$venv = dirname(__FILE__) . '/../../resources/python_venv/bin/python3';
 		if (file_exists($venv)) {
 			return $venv;
 		}
-		return '/usr/bin/python3'; // repli : installation manuelle sur le Python système
+		return '/usr/bin/python3';
 	}
 
-	/**
-	 * Exécute une action du CLI Python et retourne sa réponse décodée.
-	 *
-	 * HOME est indispensable : pyremoteplay y cherche le profil d'appairage
-	 * (/var/www/.pyremoteplay/.profile.json). Jeedom n'exporte pas toujours HOME.
-	 */
-	private function execCli($action) {
-		$ip = trim($this->getConfiguration('ip'));
-		if ($ip == '') {
-			throw new Exception(__('Aucune adresse IP configurée', __FILE__));
-		}
-
+	private static function getCli() {
 		$cli = realpath(dirname(__FILE__) . '/../../resources/ps5_cli.py');
 		if ($cli === false) {
 			throw new Exception(__('ps5_cli.py introuvable dans le dossier resources du plugin', __FILE__));
 		}
+		return $cli;
+	}
 
-		$cmd = 'HOME=/var/www ' . escapeshellarg(self::getPython()) . ' ' . escapeshellarg($cli)
-			. ' ' . escapeshellarg($action) . ' --ip ' . escapeshellarg($ip) . ' 2>&1';
+	/**
+	 * Exécute le CLI et retourne sa réponse JSON décodée.
+	 *
+	 * HOME est indispensable : pyremoteplay y cherche le profil d'appairage
+	 * (/var/www/.pyremoteplay/.profile.json). Jeedom n'exporte pas toujours HOME.
+	 */
+	private function runCli($args) {
+		$cmd = 'HOME=/var/www ' . escapeshellarg(self::getPython()) . ' '
+			. escapeshellarg(self::getCli()) . ' ' . $args . ' 2>&1';
 
 		log::add('ps5', 'info', $this->getHumanName() . ' : ' . $cmd);
 		exec($cmd, $output, $code);
@@ -280,19 +316,56 @@ class ps5 extends eqLogic {
 		return $json;
 	}
 
+	private function execCli($action) {
+		$ip = trim($this->getConfiguration('ip'));
+		if ($ip == '') {
+			throw new Exception(__('Aucune adresse IP configurée', __FILE__));
+		}
+		return $this->runCli(escapeshellarg($action) . ' --ip ' . escapeshellarg($ip));
+	}
+
+	/**
+	 * Jeu en cours, via l'API de présence PSN.
+	 *
+	 * Le jeton npsso est écrit dans un fichier temporaire à droits restreints
+	 * plutôt que passé en argument : un argument de ligne de commande est visible
+	 * de tous les utilisateurs de la machine (ps aux).
+	 */
+	private function getPresence() {
+		$npsso = trim($this->getConfiguration('npsso'));
+		if ($npsso == '') {
+			throw new Exception(__('Aucun jeton npsso configuré', __FILE__));
+		}
+
+		$dir = jeedom::getTmpFolder('ps5');
+		if (!is_dir($dir)) {
+			@mkdir($dir, 0770, true);
+		}
+		$file = $dir . '/npsso_' . $this->getId();
+
+		if (file_put_contents($file, $npsso) === false) {
+			throw new Exception(__('Impossible d\'écrire le jeton npsso temporaire', __FILE__));
+		}
+		@chmod($file, 0600);
+
+		try {
+			$json = $this->runCli('presence --npsso-file ' . escapeshellarg($file));
+		} finally {
+			@unlink($file);
+		}
+
+		return $json;
+	}
+
 	/**
 	 * Réveil de la console.
 	 *
-	 * Deux méthodes, par ordre de préférence :
-	 *
-	 *  1. Si un user-credential est renseigné sur l'équipement : paquet WAKEUP DDP
-	 *     en PHP pur (instantané, aucune dépendance). Conservé pour les
-	 *     installations existantes.
-	 *
-	 *  2. Sinon : pyremoteplay, qui réveille la console à partir du seul profil
-	 *     d'appairage. C'est désormais la méthode recommandée — le user-credential
-	 *     ne peut plus être récupéré, playactor échouant à l'appairage (403) sur
-	 *     les firmwares PS5 récents.
+	 * Deux méthodes :
+	 *  1. user-credential renseigné : paquet WAKEUP DDP en PHP pur (instantané).
+	 *     Conservé pour les installations existantes.
+	 *  2. Sinon : pyremoteplay, qui réveille à partir du seul profil d'appairage.
+	 *     C'est la méthode recommandée — le user-credential n'est plus récupérable,
+	 *     playactor échouant à l'appairage (403) sur les firmwares récents.
 	 */
 	public function wake() {
 		$ip = trim($this->getConfiguration('ip'));
@@ -323,13 +396,6 @@ class ps5 extends eqLogic {
 		$this->execCli('wakeup');
 	}
 
-	/**
-	 * Mise en veille via pyremoteplay.
-	 *
-	 * playactor (Node.js) était utilisé jusqu'ici, mais le projet n'est plus
-	 * maintenu depuis 2022 et son enregistrement échoue avec une erreur 403 sur
-	 * les firmwares PS5 récents.
-	 */
 	public function standby() {
 		$this->execCli('standby');
 	}
@@ -357,4 +423,3 @@ class ps5Cmd extends cmd {
 		return;
 	}
 }
-
