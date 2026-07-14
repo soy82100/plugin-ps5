@@ -120,13 +120,34 @@ $eqLogics = eqLogic::byType($plugin->getId());
 										<input type="text" class="eqLogicAttr form-control" data-l1key="configuration" data-l2key="ip" placeholder="192.168.1.XX"/>
 									</div>
 								</div>
+								<div class="form-group">
+									<div class="col-sm-offset-1 col-sm-10">
+										<div class="alert alert-success" style="padding:8px;">
+											<i class="fas fa-check-circle"></i> {{L'adresse IP suffit pour la détection d'état (allumée / veille / éteinte). Cette partie est entièrement locale et ne demande aucune configuration supplémentaire.}}
+										</div>
+									</div>
+								</div>
+
+								<legend><i class="fas fa-power-off"></i> {{Réveil et mise en veille}}</legend>
+								<div class="form-group">
+									<div class="col-sm-offset-1 col-sm-10">
+										<div class="alert alert-warning" style="padding:8px;">
+											<b><i class="fas fa-exclamation-triangle"></i> {{Une installation en SSH est nécessaire}}</b><br/><br/>
+											{{Les commandes "Réveiller" et "Mettre en veille" exigent un appairage préalable entre Jeedom et votre console, réalisé auprès des serveurs PlayStation.}}<br/><br/>
+											{{Cet appairage passe par une authentification dans un navigateur : il ne peut pas être automatisé et doit être effectué manuellement, en ligne de commande sur votre Jeedom (accès SSH requis). L'opération n'est à faire qu'une seule fois.}}<br/><br/>
+											{{Tant que l'appairage n'est pas réalisé, ces deux commandes resteront sans effet. Le reste du plugin fonctionne normalement.}}<br/><br/>
+											<i class="fas fa-book"></i> {{La procédure complète est décrite dans la documentation du plugin.}}
+										</div>
+									</div>
+								</div>
 
 								<legend><i class="fas fa-gamepad"></i> {{Jeu en cours (optionnel)}}</legend>
 								<div class="form-group">
 									<div class="col-sm-offset-1 col-sm-10">
 										<div class="alert alert-info" style="padding:8px;">
 											{{Les firmwares PS5 récents ne diffusent plus le nom du jeu sur le réseau local : seule l'API de présence PlayStation le fournit.}}<br/>
-											{{Ce champ est facultatif. Laissé vide, le plugin reste entièrement local et la commande "Application en cours" reste vide.}}
+											{{Ce champ est facultatif. Laissé vide, le plugin reste entièrement local et la commande "Application en cours" reste vide.}}<br/><br/>
+											<i class="fas fa-info-circle"></i> {{Le jeu est remonté quel que soit l'écran utilisé : téléviseur ou Remote Play (PlayStation Portal, smartphone, PC). En revanche, il n'est pas possible de savoir sur quel appareil la partie est jouée : Sony n'expose pas cette information.}}
 										</div>
 									</div>
 								</div>
