@@ -1,5 +1,5 @@
 {
-    "en_US": {
+    "plugins/ps5/desktop/php/ps5.php": {
         "401 - Accès non autorisé": "401 - Unauthorized access",
         "Gestion": "Management",
         "Ajouter": "Add",
@@ -47,23 +47,31 @@
         "Nom": "Name",
         "Type": "Type",
         "État": "State",
-        "Actions": "Actions",
+        "Actions": "Actions"
+    },
+    "plugins/ps5/plugin_info/configuration.php": {
         "Configuration générale": "General configuration",
         "Intervalle de rafraîchissement (minutes)": "Refresh interval (minutes)",
         "Fréquence d'interrogation de la console. 1 minute par défaut. La requête est locale et très légère (un paquet UDP), un intervalle court ne pose pas de problème.": "How often the console is polled. 1 minute by default. The request is local and very lightweight (a single UDP packet), so a short interval is not a problem.",
         "L'état de la console (allumée / veille / éteinte) est récupéré nativement, sans aucune dépendance.": "The console state (on / rest mode / off) is retrieved natively, with no dependency.",
         "Le jeu en cours est optionnel et nécessite un jeton npsso (voir la configuration de l'équipement).": "The current game is optional and requires an npsso token (see the device configuration).",
-        "Le réveil et la mise en veille nécessitent la bibliothèque Python pyremoteplay et un appairage à votre compte PSN, à réaliser une seule fois en SSH : voir la documentation du plugin.": "Wake-up and standby require the pyremoteplay Python library and pairing with your PSN account, to be done once via SSH: see the plugin documentation.",
+        "Le réveil et la mise en veille nécessitent la bibliothèque Python pyremoteplay et un appairage à votre compte PSN, à réaliser une seule fois en SSH : voir la documentation du plugin.": "Wake-up and standby require the pyremoteplay Python library and pairing with your PSN account, to be done once via SSH: see the plugin documentation."
+    },
+    "plugins/ps5/desktop/js/ps5.js": {
         "Veuillez d'abord sauvegarder l'équipement": "Please save the device first",
         "Rafraîchissement effectué, rechargez la page pour voir les valeurs": "Refresh done, reload the page to see the values",
+        "Nom": "Name",
         "Choisir une icône": "Choose an icon",
         "Commande information liée": "Related information command",
         "Aucune": "None",
         "Afficher": "Display",
         "Historiser": "Log",
-        "Tester": "Test",
+        "Tester": "Test"
+    },
+    "plugins/ps5/core/class/ps5.class.php": {
         "Rafraîchir": "Refresh",
         "Allumée": "On",
+        "État": "State",
         "Application en cours": "Current application",
         "Jaquette": "Cover art",
         "Réveiller": "Wake up",
