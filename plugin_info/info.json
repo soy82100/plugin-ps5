@@ -6,7 +6,7 @@
     "author": "Alex – Soyer Home",
     "require": "4.2",
     "category": "multimedia",
-    "language": ["fr_FR"],
+    "language": ["fr_FR", "en_US"],
     "compatibility": ["miniplus", "smart", "atlas", "luna", "rpi", "docker", "diy", "mobile", "v4"],
     "hasDependency": false,
     "hasOwnDeamon": false,
