@@ -21,9 +21,9 @@ if (!isConnect()) {
 		<div class="form-group">
 			<div class="col-md-8 col-md-offset-2">
 				<div class="alert alert-info">
-					{{L'état de la console (allumée / veille / éteinte) et l'application en cours sont récupérés nativement, sans aucune dépendance.}}<br/>
-					{{Le réveil à distance nécessite un "user-credential" (voir la configuration de l'équipement).}}<br/>
-					{{La mise en veille nécessite la bibliothèque Python pyremoteplay et un appairage à votre compte PSN, à réaliser une seule fois en SSH : voir la documentation du plugin.}}
+					{{L'état de la console (allumée / veille / éteinte) est récupéré nativement, sans aucune dépendance.}}<br/>
+					{{Le jeu en cours est optionnel et nécessite un jeton npsso (voir la configuration de l'équipement).}}<br/>
+					{{Le réveil et la mise en veille nécessitent la bibliothèque Python pyremoteplay et un appairage à votre compte PSN, à réaliser une seule fois en SSH : voir la documentation du plugin.}}
 				</div>
 			</div>
 		</div>
