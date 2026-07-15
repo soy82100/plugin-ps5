@@ -62,7 +62,22 @@
             "Aucune": "None",
             "Afficher": "Display",
             "Historiser": "Log",
-            "Tester": "Test"
+            "Tester": "Test",
+            "Rafraîchir": "Refresh",
+            "Allumée": "On",
+            "Application en cours": "Current application",
+            "Jaquette": "Cover art",
+            "Réveiller": "Wake up",
+            "Mettre en veille": "Standby",
+            "Veille": "Rest mode",
+            "Éteinte / injoignable": "Off / unreachable",
+            "Impossible de créer la socket UDP": "Unable to create the UDP socket",
+            "ps5_cli.py introuvable dans le dossier resources du plugin": "ps5_cli.py not found in the plugin's resources folder",
+            "Réponse illisible du CLI : ": "Unreadable response from the CLI: ",
+            "erreur inconnue": "unknown error",
+            "Aucune adresse IP configurée": "No IP address configured",
+            "Aucun jeton npsso configuré": "No npsso token configured",
+            "Impossible d'écrire le jeton npsso temporaire": "Unable to write the temporary npsso token"
         }
     }
 }
